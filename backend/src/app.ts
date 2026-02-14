@@ -11,8 +11,8 @@ import redis from './config/redis';
 import { initializeModels, syncModels } from './models';
 import { initializeWebSocket } from './websocket/WebSocketManager';
 import logger, { stream } from './utils/logger';
-import { errorHandler, notFoundHandler } from './middleware/error.middleware';
-import { apiRateLimiter } from './middleware/rateLimit.middleware';
+import { errorHandler, notFoundHandler } from './middlewares/error.middleware';
+import { apiRateLimiter } from './middlewares/rateLimit.middleware';
 
 // Import routes
 import authRoutes from './routes/auth.route';
