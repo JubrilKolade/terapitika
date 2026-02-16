@@ -5,21 +5,24 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Brain, Mail, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuthStore } from '@/store/authstore';
+import toast from 'react-hot-toast';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const forgotPassword = useAuthStore((state) => state.forgotPassword);
+  const isLoading = useAuthStore((state) => state.isLoadingAuth);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await forgotPassword(email);
       setIsSubmitted(true);
-    }, 2000);
+      toast.success('Reset link sent to your email');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to send reset link');
+    }
   };
 
   return (
@@ -55,7 +58,7 @@ export default function ForgotPasswordPage() {
 
           <div className="relative">
             <div className="absolute -inset-1 bg-gradient-to-r from-therapy-500 to-calm-500 rounded-3xl blur-xl opacity-20" />
-            
+
             <div className="relative backdrop-blur-2xl bg-white/10 rounded-3xl border border-white/20 p-8 shadow-2xl">
               {!isSubmitted ? (
                 <>

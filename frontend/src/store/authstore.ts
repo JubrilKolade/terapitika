@@ -4,12 +4,15 @@ import { User, AuthState } from '@/types';
 import { api } from '@/lib/api';
 
 interface AuthActions {
-  login: (email: string, password: string) => Promise<void>;
+  loginUser: (email: string, password: string) => Promise<void>;
   register: (data: any) => Promise<void>;
   logout: () => void;
-  refreshToken: () => Promise<void>;
+  refreshAuthToken: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
   setTokens: (accessToken: string, refreshToken: string) => void;
+  verifyEmail: (token: string) => Promise<void>;
+  resetPassword: (password: string, token: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState & AuthActions>()(
@@ -20,43 +23,43 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       accessToken: null,
       refreshToken: null,
       isAuthenticated: false,
-      isLoading: false,
+      isLoadingAuth: false,
 
       // Actions
-      login: async (email: string, password: string) => {
-        set({ isLoading: true });
+      loginUser: async (email: string, password: string) => {
+        set({ isLoadingAuth: true });
         try {
           const response = await api.post('/auth/login', { email, password });
           const { user, accessToken, refreshToken } = response.data.data;
-          
+
           set({
             user,
             accessToken,
             refreshToken,
             isAuthenticated: true,
-            isLoading: false,
+            isLoadingAuth: false,
           });
         } catch (error) {
-          set({ isLoading: false });
+          set({ isLoadingAuth: false });
           throw error;
         }
       },
 
       register: async (data: any) => {
-        set({ isLoading: true });
+        set({ isLoadingAuth: true });
         try {
           const response = await api.post('/auth/register', data);
           const { user, accessToken, refreshToken } = response.data.data;
-          
+
           set({
             user,
             accessToken,
             refreshToken,
             isAuthenticated: true,
-            isLoading: false,
+            isLoadingAuth: false,
           });
         } catch (error) {
-          set({ isLoading: false });
+          set({ isLoadingAuth: false });
           throw error;
         }
       },
@@ -64,7 +67,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       logout: () => {
         // Call logout API endpoint
         api.post('/auth/logout').catch(console.error);
-        
+
         set({
           user: null,
           accessToken: null,
@@ -73,14 +76,14 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         });
       },
 
-      refreshToken: async () => {
+      refreshAuthToken: async () => {
         const { refreshToken } = get();
         if (!refreshToken) return;
 
         try {
           const response = await api.post('/auth/refresh', { refreshToken });
           const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data.data;
-          
+
           set({
             accessToken: newAccessToken,
             refreshToken: newRefreshToken,
@@ -100,6 +103,47 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
       setTokens: (accessToken: string, refreshToken: string) => {
         set({ accessToken, refreshToken, isAuthenticated: true });
+      },
+
+      forgotPassword: async (email: string) => {
+        set({ isLoadingAuth: true });
+        try {
+          await api.post('/auth/forgot-password', { email });
+          set({ isLoadingAuth: false });
+        } catch (error) {
+          set({ isLoadingAuth: false });
+          throw error;
+        }
+      },
+
+      resetPassword: async (password: string, token: string) => {
+        set({ isLoadingAuth: true });
+        try {
+          await api.post(`/auth/reset-password/${token}`, { password });
+          set({ isLoadingAuth: false });
+        } catch (error) {
+          set({ isLoadingAuth: false });
+          throw error;
+        }
+      },
+
+      verifyEmail: async (token: string) => {
+        set({ isLoadingAuth: true });
+        try {
+          const response = await api.post(`/auth/verify-email/${token}`);
+          const { user, accessToken, refreshToken } = response.data.data;
+
+          set({
+            user,
+            accessToken,
+            refreshToken,
+            isAuthenticated: true,
+            isLoadingAuth: false,
+          });
+        } catch (error) {
+          set({ isLoadingAuth: false });
+          throw error;
+        }
       },
     }),
     {
