@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Federant&family=Inter:wght@400;500;600;700&display=swap');
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -24,6 +26,8 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
+    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-display: 'Federant', cursive;
   }
 
   .dark {
@@ -53,9 +57,19 @@
   * {
     @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display tracking-tight;
   }
 }
 
@@ -95,6 +109,7 @@
   0% {
     background-position: -1000px 0;
   }
+
   100% {
     background-position: 1000px 0;
   }
@@ -102,22 +117,18 @@
 
 .animate-shimmer {
   animation: shimmer 2s infinite linear;
-  background: linear-gradient(
-    to right,
-    #f0f0f0 4%,
-    #e8e8e8 25%,
-    #f0f0f0 36%
-  );
+  background: linear-gradient(to right,
+      #f0f0f0 4%,
+      #e8e8e8 25%,
+      #f0f0f0 36%);
   background-size: 1000px 100%;
 }
 
 .dark .animate-shimmer {
-  background: linear-gradient(
-    to right,
-    #1a1a1a 4%,
-    #2a2a2a 25%,
-    #1a1a1a 36%
-  );
+  background: linear-gradient(to right,
+      #1a1a1a 4%,
+      #2a2a2a 25%,
+      #1a1a1a 36%);
 }
 
 /* Gradient text */

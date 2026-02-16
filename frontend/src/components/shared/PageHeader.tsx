@@ -25,7 +25,7 @@ export function PageHeader({ title, subtitle, icon: Icon, actions, gradient = fa
             </div>
           )}
           <div>
-            <h1 className={`text-4xl font-bold mb-2 ${gradient ? 'bg-gradient-to-r from-therapy-400 to-calm-400 bg-clip-text text-transparent' : ''}`}>
+            <h1 className={`text-4xl font-display font-bold mb-2 ${gradient ? 'bg-gradient-to-r from-therapy-400 to-calm-400 bg-clip-text text-transparent' : ''}`}>
               {title}
             </h1>
             {subtitle && <p className="text-gray-400 text-lg">{subtitle}</p>}

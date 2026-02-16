@@ -1,16 +1,12 @@
-// FILE PATH: src/app/page.tsx
-// Terapitika - Main Landing Page
-// This is the homepage users see when they visit the site
-
 'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { 
-  Brain, 
-  Sparkles, 
-  Shield, 
+import {
+  Brain,
+  Sparkles,
+  Shield,
   ArrowRight,
   Menu,
   X,
@@ -103,12 +99,12 @@ export default function LandingPage() {
             </div>
 
             <div className="hidden md:flex items-center space-x-3">
-              <Link href="/auth/login">
+              <Link href="/login">
                 <Button variant="ghost" className="text-white hover:bg-white/10">
                   Login
                 </Button>
               </Link>
-              <Link href="/auth/register">
+              <Link href="/register">
                 <Button className="bg-gradient-to-r from-therapy-500 to-calm-500 hover:from-therapy-600 hover:to-calm-600 text-white shadow-lg shadow-therapy-500/50">
                   Start Free
                 </Button>
@@ -196,7 +192,7 @@ export default function LandingPage() {
                 { value: '24/7', label: 'AI Support' },
               ].map((stat, i) => (
                 <div key={i} className="text-center">
-                  <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-therapy-400 to-calm-400 bg-clip-text text-transparent">
+                  <div className="text-3xl sm:text-4xl font-display font-bold bg-gradient-to-r from-therapy-400 to-calm-400 bg-clip-text text-transparent">
                     {stat.value}
                   </div>
                   <div className="text-sm text-gray-500 mt-1">{stat.label}</div>

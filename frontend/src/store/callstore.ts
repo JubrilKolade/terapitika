@@ -1,116 +1,62 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import { User, AuthState } from '@/types';
-import { api } from '@/lib/api';
+import { CallState, ConnectionStatus, MediaSettings, Participant } from '@/types';
 
-interface AuthActions {
-  login: (email: string, password: string) => Promise<void>;
-  register: (data: any) => Promise<void>;
-  logout: () => void;
-  refreshToken: () => Promise<void>;
-  updateUser: (user: Partial<User>) => void;
-  setTokens: (accessToken: string, refreshToken: string) => void;
+interface CallActions {
+  setRoomId: (roomId: string) => void;
+  setSessionId: (sessionId: string) => void;
+  addParticipant: (participant: Participant) => void;
+  removeParticipant: (userId: string) => void;
+  updateParticipant: (userId: string, updates: Partial<Participant>) => void;
+  setLocalStream: (stream: MediaStream) => void;
+  setMediaSettings: (settings: Partial<MediaSettings>) => void;
+  setConnectionStatus: (status: ConnectionStatus) => void;
+  setDuration: (duration: number) => void;
+  resetCall: () => void;
 }
 
-export const useAuthStore = create<AuthState & AuthActions>()(
-  persist(
-    (set, get) => ({
-      // Initial state
-      user: null,
-      accessToken: null,
-      refreshToken: null,
-      isAuthenticated: false,
-      isLoading: false,
+export const useCallStore = create<CallState & CallActions>((set) => ({
+  // Initial state
+  roomId: '',
+  sessionId: '',
+  participants: [],
+  localStream: undefined,
+  mediaSettings: {
+    video: true,
+    audio: true,
+    screenShare: false,
+  },
+  connectionStatus: ConnectionStatus.IDLE,
+  duration: 0,
 
-      // Actions
-      login: async (email: string, password: string) => {
-        set({ isLoading: true });
-        try {
-          const response = await api.post('/auth/login', { email, password });
-          const { user, accessToken, refreshToken } = response.data.data;
-          
-          set({
-            user,
-            accessToken,
-            refreshToken,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-        } catch (error) {
-          set({ isLoading: false });
-          throw error;
-        }
-      },
-
-      register: async (data: any) => {
-        set({ isLoading: true });
-        try {
-          const response = await api.post('/auth/register', data);
-          const { user, accessToken, refreshToken } = response.data.data;
-          
-          set({
-            user,
-            accessToken,
-            refreshToken,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-        } catch (error) {
-          set({ isLoading: false });
-          throw error;
-        }
-      },
-
-      logout: () => {
-        // Call logout API endpoint
-        api.post('/auth/logout').catch(console.error);
-        
-        set({
-          user: null,
-          accessToken: null,
-          refreshToken: null,
-          isAuthenticated: false,
-        });
-      },
-
-      refreshToken: async () => {
-        const { refreshToken } = get();
-        if (!refreshToken) return;
-
-        try {
-          const response = await api.post('/auth/refresh', { refreshToken });
-          const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data.data;
-          
-          set({
-            accessToken: newAccessToken,
-            refreshToken: newRefreshToken,
-          });
-        } catch (error) {
-          // If refresh fails, logout
-          get().logout();
-          throw error;
-        }
-      },
-
-      updateUser: (userData: Partial<User>) => {
-        set((state) => ({
-          user: state.user ? { ...state.user, ...userData } : null,
-        }));
-      },
-
-      setTokens: (accessToken: string, refreshToken: string) => {
-        set({ accessToken, refreshToken, isAuthenticated: true });
-      },
+  // Actions
+  setRoomId: (roomId) => set({ roomId }),
+  setSessionId: (sessionId) => set({ sessionId }),
+  addParticipant: (participant) =>
+    set((state) => ({ participants: [...state.participants, participant] })),
+  removeParticipant: (userId) =>
+    set((state) => ({
+      participants: state.participants.filter((p) => p.userId !== userId),
+    })),
+  updateParticipant: (userId, updates) =>
+    set((state) => ({
+      participants: state.participants.map((p) =>
+        p.userId === userId ? { ...p, ...updates } : p
+      ),
+    })),
+  setLocalStream: (stream) => set({ localStream: stream }),
+  setMediaSettings: (settings) =>
+    set((state) => ({
+      mediaSettings: { ...state.mediaSettings, ...settings },
+    })),
+  setConnectionStatus: (connectionStatus) => set({ connectionStatus }),
+  setDuration: (duration) => set({ duration }),
+  resetCall: () =>
+    set({
+      roomId: '',
+      sessionId: '',
+      participants: [],
+      localStream: undefined,
+      connectionStatus: ConnectionStatus.IDLE,
+      duration: 0,
     }),
-    {
-      name: 'auth-storage',
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({
-        user: state.user,
-        accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
-        isAuthenticated: state.isAuthenticated,
-      }),
-    }
-  )
-);
+}));

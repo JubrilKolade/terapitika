@@ -33,7 +33,7 @@ export function StatCard({ icon: Icon, label, value, change, trend, gradient, de
             </div>
           )}
         </div>
-        <div className="text-3xl font-bold mb-1">{value}</div>
+        <div className="text-3xl font-display font-bold mb-1">{value}</div>
         <div className="text-sm text-gray-400">{label}</div>
       </div>
     </motion.div>

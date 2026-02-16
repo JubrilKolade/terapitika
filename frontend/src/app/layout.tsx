@@ -1,19 +1,10 @@
 import type { Metadata } from 'next';
-import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { Toaster } from 'react-hot-toast';
 
-const inter = Inter({ 
-  subsets: ['latin'],
-  variable: '--font-sans',
-  display: 'swap',
-});
-
-const playfair = Playfair_Display({ 
-  subsets: ['latin'],
-  variable: '--font-display',
-  display: 'swap',
-});
+// Font variable placeholders
+const inter = { variable: 'font-sans' };
+const federant = { variable: 'font-display' };
 
 export const metadata: Metadata = {
   title: 'Terapitika - AI-Powered Mental Health Platform',
@@ -63,10 +54,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
+    <html lang="en" className={`${inter.variable} ${federant.variable}`}>
       <body className="font-sans antialiased">
         {children}
-        <Toaster 
+        <Toaster
           position="top-right"
           toastOptions={{
             duration: 4000,
