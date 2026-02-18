@@ -24,7 +24,10 @@ import {
     UserCheck,
     AlertTriangle,
     DollarSign,
-    Activity
+    Activity,
+    DollarSignIcon,
+    Clipboard
+    
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/authstore';
@@ -43,6 +46,8 @@ const userNavItems: NavItem[] = [
     { label: 'Chat', href: '/chat', icon: MessageSquare },
     { label: 'Profile', href: '/profile', icon: User },
     { label: 'Settings', href: '/settings', icon: Settings },
+    { label: 'Subscriptions', href: '/subscription', icon: DollarSignIcon},
+    { label: 'Notifications', href: '/notifications', icon: Bell}
 ];
 
 const therapistNavItems: NavItem[] = [
@@ -51,6 +56,8 @@ const therapistNavItems: NavItem[] = [
     { label: 'Clients', href: '/therapist/clients', icon: User },
     { label: 'Sessions', href: '/therapist/sessions', icon: Video },
     { label: 'Earnings', href: '/therapist/earnings', icon: CreditCard },
+    { label: 'Register', href: '/therapist/register', icon: Clipboard },
+    { label: 'Profile', href: '/therapist/profile', icon: User },
     { label: 'Settings', href: '/therapist/settings', icon: Settings },
 ];
 
