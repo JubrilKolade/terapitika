@@ -8,6 +8,13 @@ import { Button } from '@/components/ui/button';
 
 export function Navbar() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const navLinks = [
+        { label: 'How it works', href: '/how-it-works' },
+        { label: 'Therapists', href: '/therapists' },
+        { label: 'Pricing', href: '/pricing' },
+        { label: 'Resources', href: '/resources' },
+        { label: 'Blog', href: '/blog' },
+    ];
 
     return (
         <motion.nav
@@ -27,15 +34,14 @@ export function Navbar() {
                         </span>
                     </Link>
 
-                    {/* Menu Center */}
                     <div className="hidden lg:flex items-center bg-white/5 border border-white/5 rounded-full px-2 py-1">
-                        {['Home', 'Platform', 'Therapists', 'Resources', 'Pricing'].map((item) => (
+                        {navLinks.map((item) => (
                             <Link
-                                key={item}
-                                href={`#${item.toLowerCase()}`}
+                                key={item.label}
+                                href={item.href}
                                 className="px-5 py-2 text-[13px] font-medium text-gray-400 hover:text-white transition-colors uppercase tracking-wider"
                             >
-                                {item}
+                                {item.label}
                             </Link>
                         ))}
                     </div>
@@ -82,14 +88,14 @@ export function Navbar() {
                     </div>
 
                     <div className="flex flex-col space-y-6">
-                        {['Home', 'Platform', 'Therapists', 'Resources', 'Pricing'].map((item) => (
+                        {navLinks.map((item) => (
                             <Link
-                                key={item}
-                                href={`#${item.toLowerCase()}`}
+                                key={item.label}
+                                href={item.href}
                                 onClick={() => setMobileMenuOpen(false)}
                                 className="text-2xl font-display font-bold text-gray-400 hover:text-white transition-colors"
                             >
-                                {item}
+                                {item.label}
                             </Link>
                         ))}
                     </div>
