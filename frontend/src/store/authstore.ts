@@ -119,7 +119,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       resetPassword: async (password: string, token: string) => {
         set({ isLoadingAuth: true });
         try {
-          await api.post(`/auth/reset-password/${token}`, { password });
+          await api.post('/auth/reset-password', { token, newPassword: password });
           set({ isLoadingAuth: false });
         } catch (error) {
           set({ isLoadingAuth: false });
@@ -130,7 +130,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       verifyEmail: async (token: string) => {
         set({ isLoadingAuth: true });
         try {
-          const response = await api.post(`/auth/verify-email/${token}`);
+          const response = await api.post('/auth/verify-email', { token });
           const { user, accessToken, refreshToken } = response.data.data;
 
           set({

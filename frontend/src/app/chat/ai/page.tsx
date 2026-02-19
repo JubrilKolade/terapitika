@@ -17,24 +17,31 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { apiHelpers } from '@/lib/api';
+import { Message } from '@/types';
+
+type ChatMessage = {
+  id: string;
+  content: string;
+  sender: 'user' | 'ai';
+  timestamp: Date;
+};
+
+const defaultWelcomeMessage: ChatMessage = {
+  id: 'welcome',
+  content:
+    "Hello! I'm your AI companion. I'm here to listen and support you. How are you feeling today?",
+  sender: 'ai',
+  timestamp: new Date(),
+};
 
 export default function ChatInterface() {
-  const [messages, setMessages] = useState<Array<{
-    id: string;
-    content: string;
-    sender: 'user' | 'ai';
-    timestamp: Date;
-  }>>([
-    {
-      id: '1',
-      content: "Hello! I'm your AI companion. I'm here to listen and support you. How are you feeling today?",
-      sender: 'ai',
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([defaultWelcomeMessage]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -46,12 +53,56 @@ export default function ChatInterface() {
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    const initializeSession = async () => {
+      try {
+        const response = await apiHelpers.sessions.createAI();
+        const payload = (response as any)?.data;
+        const session = payload?.data ?? payload;
+        const id = session?.id as string | undefined;
+
+        if (id) {
+          setSessionId(id);
+
+          try {
+            const historyResponse = await apiHelpers.chat.getHistory(id);
+            const historyPayload = (historyResponse as any)?.data;
+            const rawHistory = historyPayload?.data ?? historyPayload;
+            const items: any[] = Array.isArray(rawHistory) ? rawHistory : [];
+
+            if (items.length > 0) {
+              const mapped: ChatMessage[] = items.map((m) => {
+                const message = m as Message;
+                return {
+                  id: message.id,
+                  content: message.content,
+                  sender: message.senderType === 'ai' ? 'ai' : 'user',
+                  timestamp: new Date(message.createdAt),
+                };
+              });
+
+              setMessages(mapped);
+            }
+          } catch {
+          }
+        }
+      } catch {
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    initializeSession();
+  }, []);
+
   const handleSend = async () => {
     if (!inputValue.trim()) return;
 
+    const content = inputValue.trim();
+
     const newMessage = {
       id: Date.now().toString(),
-      content: inputValue,
+      content,
       sender: 'user' as const,
       timestamp: new Date(),
     };
@@ -60,17 +111,66 @@ export default function ChatInterface() {
     setInputValue('');
     setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse = {
-        id: (Date.now() + 1).toString(),
-        content: "I understand how you're feeling. Let's explore that together. Can you tell me more about what's been on your mind?",
-        sender: 'ai' as const,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, aiResponse]);
+    try {
+      let currentSessionId = sessionId;
+
+      if (!currentSessionId) {
+        const sessionResponse = await apiHelpers.sessions.createAI();
+        const sessionPayload = (sessionResponse as any)?.data;
+        const session = sessionPayload?.data ?? sessionPayload;
+        const id = session?.id as string | undefined;
+        if (id) {
+          currentSessionId = id;
+          setSessionId(id);
+        }
+      }
+
+      if (!currentSessionId) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `error-${Date.now()}`,
+            content: 'Unable to start AI session. Please try again.',
+            sender: 'ai',
+            timestamp: new Date(),
+          },
+        ]);
+        return;
+      }
+
+      const response = await apiHelpers.chat.sendMessage(currentSessionId, content);
+      const payload = (response as any)?.data;
+      const raw = payload?.data ?? payload;
+      const items: any[] = Array.isArray(raw) ? raw : raw ? [raw] : [];
+
+      const aiSource =
+        items.find((m) => (m as Message).senderType === 'ai') ||
+        items[items.length - 1];
+
+      if (aiSource) {
+        const message = aiSource as Message;
+        const aiMessage: ChatMessage = {
+          id: message.id,
+          content: message.content,
+          sender: message.senderType === 'ai' ? 'ai' : 'user',
+          timestamp: new Date(message.createdAt),
+        };
+
+        setMessages((prev) => [...prev, aiMessage]);
+      }
+    } catch (e) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `error-${Date.now()}`,
+          content: 'Something went wrong while contacting the AI. Please try again.',
+          sender: 'ai',
+          timestamp: new Date(),
+        },
+      ]);
+    } finally {
       setIsTyping(false);
-    }, 2000);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -161,7 +261,7 @@ export default function ChatInterface() {
                   <div className="font-semibold">AI Companion</div>
                   <div className="text-xs text-gray-400 flex items-center space-x-1">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                    <span>Online</span>
+                    <span>{isInitializing ? 'Connecting...' : 'Online'}</span>
                   </div>
                 </div>
               </div>

@@ -80,8 +80,8 @@ export const apiHelpers = {
       api.post('/auth/refresh', { refreshToken }),
     forgotPassword: (email: string) =>
       api.post('/auth/forgot-password', { email }),
-    resetPassword: (token: string, password: string) =>
-      api.post('/auth/reset-password', { token, password }),
+    resetPassword: (token: string, newPassword: string) =>
+      api.post('/auth/reset-password', { token, newPassword }),
     verifyEmail: (token: string) =>
       api.post('/auth/verify-email', { token }),
   },
@@ -89,22 +89,17 @@ export const apiHelpers = {
   // Users
   users: {
     getProfile: () =>
-      api.get('/users/profile'),
+      api.get('/users/me'),
     updateProfile: (data: any) =>
-      api.put('/users/profile', data),
-    uploadAvatar: (file: File) => {
-      const formData = new FormData();
-      formData.append('avatar', file);
-      return api.post('/users/avatar', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-    },
+      api.patch('/users/me', data),
+    uploadAvatar: (pictureUrl: string) =>
+      api.post('/users/me/profile-picture', { pictureUrl }),
     changePassword: (currentPassword: string, newPassword: string) =>
-      api.post('/users/change-password', { currentPassword, newPassword }),
+      api.post('/auth/change-password', { currentPassword, newPassword }),
     getSettings: () =>
-      api.get('/users/settings'),
+      api.get('/users/me'),
     updateSettings: (settings: any) =>
-      api.put('/users/settings', settings),
+      api.patch('/users/me/preferences', settings),
   },
 
   // Therapists
@@ -121,18 +116,26 @@ export const apiHelpers = {
 
   // Sessions
   sessions: {
-    getAll: (params?: any) =>
-      api.get('/sessions', { params }),
+    createAI: () =>
+      api.post('/sessions/ai'),
+    createTherapist: (data: any) =>
+      api.post('/sessions/therapist', data),
+    getMine: (params?: any) =>
+      api.get('/sessions/mine', { params }),
     getById: (id: string) =>
       api.get(`/sessions/${id}`),
-    create: (data: any) =>
-      api.post('/sessions', data),
-    update: (id: string, data: any) =>
-      api.put(`/sessions/${id}`, data),
-    cancel: (id: string, reason?: string) =>
-      api.post(`/sessions/${id}/cancel`, { reason }),
-    rate: (id: string, rating: number, feedback?: string) =>
-      api.post(`/sessions/${id}/rate`, { rating, feedback }),
+    getMessages: (sessionId: string, params?: any) =>
+      api.get(`/sessions/${sessionId}/messages`, { params }),
+    addNotes: (sessionId: string, notes: string) =>
+      api.post(`/sessions/${sessionId}/notes`, { notes }),
+    getSummary: (sessionId: string) =>
+      api.get(`/sessions/${sessionId}/summary`),
+    getTranscript: (sessionId: string) =>
+      api.get(`/sessions/${sessionId}/transcript`),
+    end: (sessionId: string) =>
+      api.patch(`/sessions/${sessionId}/end`),
+    cancel: (sessionId: string, reason?: string) =>
+      api.delete(`/sessions/${sessionId}`, { data: { reason } }),
   },
 
   // Bookings
@@ -141,39 +144,40 @@ export const apiHelpers = {
       api.post('/bookings', data),
     getAll: (params?: any) =>
       api.get('/bookings', { params }),
+    getMine: (params?: any) =>
+      api.get('/bookings/my-bookings', { params }),
     getById: (id: string) =>
       api.get(`/bookings/${id}`),
     cancel: (id: string, reason?: string) =>
       api.post(`/bookings/${id}/cancel`, { reason }),
-    reschedule: (id: string, newDate: string, newTime: string) =>
-      api.post(`/bookings/${id}/reschedule`, { newDate, newTime }),
+    reschedule: (id: string, scheduledAt: string) =>
+      api.post(`/bookings/${id}/reschedule`, { scheduledAt }),
+    getAvailableSlots: (therapistId: string, date: string, duration?: number) =>
+      api.get('/bookings/available-slots', { params: { therapistId, date, duration } }),
   },
 
   // Chat
   chat: {
-    getSessions: () =>
-      api.get('/chat/sessions'),
-    createSession: (type: string, participantId?: string) =>
-      api.post('/chat/sessions', { type, participantId }),
-    getMessages: (sessionId: string, params?: any) =>
-      api.get(`/chat/sessions/${sessionId}/messages`, { params }),
-    sendMessage: (sessionId: string, content: string, type?: string) =>
-      api.post(`/chat/sessions/${sessionId}/messages`, { content, type }),
-    uploadFile: (sessionId: string, file: File) => {
-      const formData = new FormData();
-      formData.append('file', file);
-      return api.post(`/chat/sessions/${sessionId}/upload`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-    },
+    sendMessage: (sessionId: string, content: string, contentType: string = 'text', fileUrl?: string) =>
+      api.post('/chat/send', { sessionId, content, contentType, fileUrl }),
+    getHistory: (sessionId: string, params?: any) =>
+      api.get(`/chat/${sessionId}/history`, { params }),
+    editMessage: (id: string, content: string) =>
+      api.patch(`/chat/messages/${id}`, { content }),
+    deleteMessage: (id: string) =>
+      api.delete(`/chat/messages/${id}`),
     markAsRead: (sessionId: string) =>
-      api.post(`/chat/sessions/${sessionId}/read`),
+      api.patch(`/chat/${sessionId}/read`),
+    getUnreadCount: (sessionId: string) =>
+      api.get(`/chat/${sessionId}/unread`),
   },
 
   // Payments
   payments: {
     getAll: (params?: any) =>
-      api.get('/payments', { params }),
+      api.get('/payments/history', { params }),
+    getHistory: (params?: any) =>
+      api.get('/payments/history', { params }),
     createIntent: (amount: number, sessionId?: string) =>
       api.post('/payments/intent', { amount, sessionId }),
     confirmPayment: (paymentIntentId: string) =>
@@ -196,14 +200,8 @@ export const apiHelpers = {
       api.post('/support/tickets', data),
     getTicket: (id: string) =>
       api.get(`/support/tickets/${id}`),
-    replyToTicket: (id: string, content: string, attachments?: File[]) => {
-      const formData = new FormData();
-      formData.append('content', content);
-      attachments?.forEach((file) => formData.append('attachments', file));
-      return api.post(`/support/tickets/${id}/reply`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-    },
+    replyToTicket: (id: string, message: string, isInternal: boolean = false) =>
+      api.post(`/support/tickets/${id}/messages`, { message, isInternal }),
     closeTicket: (id: string) =>
       api.post(`/support/tickets/${id}/close`),
   },
@@ -213,9 +211,9 @@ export const apiHelpers = {
     getAll: (params?: any) =>
       api.get('/notifications', { params }),
     markAsRead: (id: string) =>
-      api.post(`/notifications/${id}/read`),
+      api.patch(`/notifications/${id}/read`),
     markAllAsRead: () =>
-      api.post('/notifications/read-all'),
+      api.patch('/notifications/read-all'),
     delete: (id: string) =>
       api.delete(`/notifications/${id}`),
   },
