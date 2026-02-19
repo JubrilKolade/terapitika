@@ -182,6 +182,15 @@ export const getTherapistStats = async (therapistId: string): Promise<{
 };
 
 /**
+ * Get availability schedule
+ */
+export const getAvailability = async (therapistId: string): Promise<any> => {
+    const therapist = await Therapist.findByPk(therapistId);
+    if (!therapist) throw new Error('Therapist not found');
+    return therapist.availability_schedule;
+};
+
+/**
  * Update availability schedule
  */
 export const updateAvailability = async (

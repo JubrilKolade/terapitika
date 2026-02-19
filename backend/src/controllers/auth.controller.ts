@@ -59,9 +59,9 @@ export const forgotPassword = asyncHandler(async (req: AuthRequest, res: Respons
  * Reset password
  */
 export const resetPassword = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { userId, token, newPassword } = req.body;
-  await AuthService.resetPassword(userId, token, newPassword);
-  logAuditEvent(userId, 'password_reset', 'user', userId);
+  const { token, newPassword } = req.body;
+  await AuthService.resetPassword(token, newPassword);
+  logAuditEvent(undefined, 'password_reset', 'user', undefined);
   return sendSuccess(res, null, 'Password reset successful');
 });
 
@@ -80,9 +80,9 @@ export const changePassword = asyncHandler(async (req: AuthRequest, res: Respons
  * Verify email
  */
 export const verifyEmail = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { userId, token } = req.body;
-  await AuthService.verifyEmail(userId, token);
-  logAuditEvent(userId, 'email_verified', 'user', userId);
+  const { token } = req.body;
+  await AuthService.verifyEmail(token);
+  logAuditEvent(undefined, 'email_verified', 'user', undefined);
   return sendSuccess(res, null, 'Email verified successfully');
 });
 

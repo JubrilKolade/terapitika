@@ -8,6 +8,7 @@ const router = Router();
 // Public routes
 router.get('/search', validatePaginationParams, TherapistController.search);
 router.get('/:id', TherapistController.getById);
+router.get('/:id/availability', TherapistController.getAvailability);
 
 // Therapist routes (requires therapist role)
 router.post('/register', authenticate, sanitizeBody, TherapistController.register);

@@ -34,6 +34,12 @@ export const getById = asyncHandler(async (req: AuthRequest, res: Response) => {
   return sendSuccess(res, therapist);
 });
 
+export const getAvailability = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id } = req.params as { id: string };
+  const availability = await TherapistService.getAvailability(id);
+  return sendSuccess(res, { availability });
+});
+
 export const search = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { specialization, minRating, maxRate, languages, acceptsInsurance, isAcceptingClients, page = 1, limit = 20 } = req.query;
   const result = await TherapistService.searchTherapists({
