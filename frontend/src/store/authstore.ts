@@ -130,16 +130,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       verifyEmail: async (token: string) => {
         set({ isLoadingAuth: true });
         try {
-          const response = await api.post('/auth/verify-email', { token });
-          const { user, accessToken, refreshToken } = response.data.data;
-
-          set({
-            user,
-            accessToken,
-            refreshToken,
-            isAuthenticated: true,
-            isLoadingAuth: false,
-          });
+          await api.post('/auth/verify-email', { token });
+          set({ isLoadingAuth: false });
         } catch (error) {
           set({ isLoadingAuth: false });
           throw error;
