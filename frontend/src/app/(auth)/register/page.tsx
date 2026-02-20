@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Brain, Mail, Lock, Eye, EyeOff, User, ArrowRight, Sparkles, Check } from 'lucide-react';
@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register, isLoadingAuth } = useAuthStore();
+  const { register, isLoadingAuth, isAuthenticated } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -40,6 +40,12 @@ export default function RegisterPage() {
       toast.error(error.response?.data?.message || 'Registration failed');
     }
   };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/dashboard');
+    }
+  }, [isAuthenticated, router]);
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-[#0A0A0F] via-[#1a1a2e] to-[#0A0A0F]">

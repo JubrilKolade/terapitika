@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Brain, Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react';
@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { loginUser, isLoadingAuth } = useAuthStore();
+  const { loginUser, isLoadingAuth, isAuthenticated } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -30,6 +30,12 @@ export default function LoginPage() {
       toast.error(error.response?.data?.message || 'Login failed');
     }
   };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/dashboard');
+    }
+  }, [isAuthenticated, router]);
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-[#0A0A0F] via-[#1a1a2e] to-[#0A0A0F]">
