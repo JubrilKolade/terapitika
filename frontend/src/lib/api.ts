@@ -100,6 +100,10 @@ export const apiHelpers = {
       api.get('/users/me'),
     updateSettings: (settings: any) =>
       api.patch('/users/me/preferences', settings),
+    getStats: () =>
+      api.get('/users/me/stats'),
+    deleteAccount: () =>
+      api.delete('/users/me'),
   },
 
   // Therapists
@@ -226,6 +230,58 @@ export const apiHelpers = {
       api.get('/analytics/mood', { params: { startDate, endDate } }),
     logMood: (mood: number, energy: number, anxiety: number, notes?: string) =>
       api.post('/analytics/mood', { mood, energy, anxiety, notes }),
+  },
+
+  // Admin
+  admin: {
+    getDashboard: () =>
+      api.get('/admin/analytics'),
+    getUsers: (params?: any) =>
+      api.get('/admin/users', { params }),
+    getUser: (id: string) =>
+      api.get(`/admin/users/${id}`),
+    updateUser: (id: string, data: any) =>
+      api.patch(`/admin/users/${id}`, data),
+    deleteUser: (id: string) =>
+      api.delete(`/admin/users/${id}`),
+    getPendingVerifications: (params?: any) =>
+      api.get('/admin/therapists/pending', { params }),
+    verifyTherapist: (id: string, status: string, notes?: string) =>
+      api.patch(`/admin/therapists/${id}/verify`, { status, notes }),
+    getCrisisLogs: (params?: any) =>
+      api.get('/admin/crisis-logs', { params }),
+    getAuditLogs: (params?: any) =>
+      api.get('/admin/audit-logs', { params }),
+  },
+
+  // Subscriptions
+  subscriptions: {
+    getPlans: () =>
+      api.get('/subscriptions/plans'),
+    getMine: () =>
+      api.get('/subscriptions/mine'),
+    subscribe: (planId: string) =>
+      api.post('/subscriptions/subscribe', { planId }),
+    upgrade: (planId: string) =>
+      api.patch('/subscriptions/upgrade', { planId }),
+    cancel: () =>
+      api.delete('/subscriptions/cancel'),
+    getUsage: () =>
+      api.get('/subscriptions/usage'),
+  },
+
+  // Therapist Portal
+  therapistPortal: {
+    getProfile: () =>
+      api.get('/therapists/me/profile'),
+    updateProfile: (data: any) =>
+      api.patch('/therapists/me/profile', data),
+    getStats: () =>
+      api.get('/therapists/me/stats'),
+    updateAvailability: (data: any) =>
+      api.patch('/therapists/me/availability', data),
+    uploadDocuments: (data: any) =>
+      api.post('/therapists/me/documents', data),
   },
 };
 
