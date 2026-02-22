@@ -1,15 +1,55 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Video, MessageSquare, Mic, Shield, X, Maximize2, Settings, Send, Paperclip, Smile } from 'lucide-react';
+import { Video, MessageSquare, Mic, Shield, X, Maximize2, Settings, Send, Paperclip, Smile, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/store/authstore';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { apiHelpers } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 export default function SessionRoom() {
     const { user } = useAuthStore();
+    const searchParams = useSearchParams();
+    const sessionId = searchParams.get('sessionId');
+
+    const [isLoading, setIsLoading] = useState(!!sessionId);
+    const [sessionData, setSessionData] = useState<any>(null);
+
+    useEffect(() => {
+        if (!sessionId) return;
+
+        const fetchSession = async () => {
+            try {
+                const response = await apiHelpers.sessions.getById(sessionId);
+                setSessionData(response.data.data);
+            } catch (error) {
+                console.error('Failed to fetch session:', error);
+                toast.error('Could not load session metadata');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchSession();
+    }, [sessionId]);
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-[#0A0A0F] text-white flex items-center justify-center">
+                <div className="text-center space-y-4">
+                    <Loader2 className="w-12 h-12 animate-spin text-therapy-500 mx-auto" />
+                    <p className="text-gray-400">Loading session room...</p>
+                </div>
+            </div>
+        );
+    }
+
+    const therapistName = sessionData?.therapist?.name || 'Your Therapist';
 
     return (
         <div className="min-h-screen bg-[#0A0A0F] text-white flex flex-col">
@@ -24,12 +64,12 @@ export default function SessionRoom() {
                     <div className="h-8 w-px bg-white/10 mx-2" />
                     <div>
                         <div className="font-bold flex items-center">
-                            Session with <span className="text-therapy-400 ml-1">Dr. Sarah Johnson</span>
+                            Session with <span className="text-therapy-400 ml-1">{therapistName}</span>
                             <Shield size={14} className="ml-2 text-green-400" />
                         </div>
                         <div className="text-xs text-gray-500 flex items-center">
                             <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse" />
-                            Encrypted Session (42:15 remaining)
+                            {sessionData ? `Encrypted Session (${sessionData.durationRemaining || '50:00'} remaining)` : 'Securing connection...'}
                         </div>
                     </div>
                 </div>
@@ -49,9 +89,9 @@ export default function SessionRoom() {
                     {/* Main Feed Placeholder */}
                     <div className="text-center space-y-4">
                         <div className="w-24 h-24 rounded-full bg-gradient-to-br from-therapy-400 to-calm-400 mx-auto flex items-center justify-center text-3xl font-bold shadow-2xl">
-                            S
+                            {therapistName.charAt(0)}
                         </div>
-                        <div className="text-gray-400 font-medium">Waiting for Dr. Sarah Johnson to connect...</div>
+                        <div className="text-gray-400 font-medium">Waiting for {therapistName} to connect...</div>
                     </div>
 
                     {/* Self View */}

@@ -1,122 +1,178 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { GlassCard } from '@/components/shared/GlassCard';
-import { MessageSquare, Search, Filter, MessageCircle, Clock, User, CheckCircle, Reply } from 'lucide-react';
+import { LifeBuoy, Search, Filter, MessageSquare, Clock, CheckCircle2, AlertCircle, ExternalLink, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
+import { apiHelpers } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 export default function AdminSupportPage() {
+    const [isLoading, setIsLoading] = useState(true);
+    const [data, setData] = useState<any>(null);
     const [searchQuery, setSearchQuery] = useState('');
+
+    useEffect(() => {
+        const fetchTickets = async () => {
+            try {
+                const response = await apiHelpers.support.getTickets();
+                setData(response.data.data);
+            } catch (error) {
+                console.error('Failed to fetch tickets:', error);
+                toast.error('Failed to load support tickets');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchTickets();
+    }, []);
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <Loader2 className="w-8 h-8 animate-spin text-therapy-500" />
+            </div>
+        );
+    }
+
+    const { stats, tickets } = data || {};
 
     return (
         <div className="space-y-8">
             <PageHeader
-                title="Support Tickets"
-                subtitle="Manage user inquiries, technical issues, and platform support"
-                icon={MessageSquare}
-                actions={
-                    <Button className="bg-gradient-to-r from-therapy-500 to-calm-500 hover:from-therapy-600 hover:to-calm-600">
-                        Open New Ticket
-                    </Button>
-                }
+                title="Support Center"
+                subtitle="Manage user inquiries, technical issues, and platform support tickets"
+                icon={LifeBuoy}
+                gradient
             />
 
-            {/* Ticket Stats */}
-            <div className="grid md:grid-cols-4 gap-6">
-                <StatSmall label="Total Open" value="24" color="text-therapy-400" />
-                <StatSmall label="Assigned to Me" value="08" color="text-calm-400" />
-                <StatSmall label="High Priority" value="05" color="text-red-400" />
-                <StatSmall label="Avg Response" value="2.4h" color="text-blue-400" />
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatSmall
+                    icon={MessageSquare}
+                    label="Total Tickets"
+                    value={stats?.total || '0'}
+                    color="text-blue-400"
+                    bg="bg-blue-500/10"
+                />
+                <StatSmall
+                    icon={Clock}
+                    label="Open"
+                    value={stats?.open || '0'}
+                    color="text-yellow-400"
+                    bg="bg-yellow-500/10"
+                />
+                <StatSmall
+                    icon={AlertCircle}
+                    label="Urgent"
+                    value={stats?.urgent || '0'}
+                    color="text-red-400"
+                    bg="bg-red-500/10"
+                />
+                <StatSmall
+                    icon={CheckCircle2}
+                    label="Resolved"
+                    value={stats?.resolved || '0'}
+                    color="text-green-400"
+                    bg="bg-green-500/10"
+                />
             </div>
 
-            {/* Tickets Table */}
             <GlassCard gradient>
-                <div className="flex flex-col md:flex-row gap-4 mb-6">
-                    <div className="flex-1 relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input
                             type="text"
-                            placeholder="Search by ticket ID, user, or subject..."
+                            placeholder="Search by User, Subject, or Ticket ID..."
+                            className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-therapy-500"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-therapy-500"
                         />
                     </div>
-                    <Button variant="outline" className="border-white/10 hover:bg-white/10">
-                        <Filter className="w-4 h-4 mr-2" />
-                        Priority
-                    </Button>
+                    <div className="flex items-center space-x-2">
+                        <Button variant="outline" size="sm" className="border-white/10">
+                            <Filter className="w-4 h-4 mr-2" />
+                            Filter
+                        </Button>
+                        <Button size="sm" className="bg-therapy-500 hover:bg-therapy-600">Export CSV</Button>
+                    </div>
                 </div>
 
-                <div className="space-y-4">
-                    {tickets.map((ticket) => (
-                        <div key={ticket.id} className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group">
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="flex items-start space-x-4">
-                                    <div className={`p-2 rounded-lg ${ticket.priority === 'High' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'
-                                        }`}>
-                                        <MessageCircle className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center space-x-2">
-                                            <span className="text-xs font-mono text-gray-500">{ticket.id}</span>
-                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${ticket.priority === 'High' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'
-                                                }`}>
-                                                {ticket.priority} Priority
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead>
+                            <tr className="border-b border-white/10 text-left text-sm font-semibold text-gray-400">
+                                <th className="px-4 py-3">ID</th>
+                                <th className="px-4 py-3">Subject</th>
+                                <th className="px-4 py-3">User</th>
+                                <th className="px-4 py-3">Priority</th>
+                                <th className="px-4 py-3">Status</th>
+                                <th className="px-4 py-3">Last Activity</th>
+                                <th className="px-4 py-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                            {tickets?.length > 0 ? (
+                                tickets.map((ticket: any) => (
+                                    <tr key={ticket.id} className="hover:bg-white/5 transition-colors group">
+                                        <td className="px-4 py-4 text-sm font-mono text-gray-400">#{ticket.id.slice(0, 8)}</td>
+                                        <td className="px-4 py-4">
+                                            <div>
+                                                <p className="font-medium">{ticket.subject}</p>
+                                                <p className="text-xs text-gray-500">{ticket.category}</p>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-4 text-sm">{ticket.userName || ticket.userEmail}</td>
+                                        <td className="px-4 py-4">
+                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${ticket.priority === 'High' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                                                {ticket.priority}
                                             </span>
-                                        </div>
-                                        <h3 className="text-lg font-bold mt-1">{ticket.subject}</h3>
-                                        <p className="text-sm text-gray-400 line-clamp-1">{ticket.lastMessage}</p>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${ticket.status === 'Open' ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'
-                                        }`}>
-                                        {ticket.status}
-                                    </span>
-                                    <p className="text-xs text-gray-500 mt-2 flex items-center justify-end">
-                                        <Clock className="w-3 h-3 mr-1" />
-                                        {ticket.updatedAt}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                                <div className="flex items-center space-x-4">
-                                    <div className="flex items-center space-x-2">
-                                        <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold">
-                                            {ticket.user.charAt(0)}
-                                        </div>
-                                        <span className="text-xs text-gray-400">{ticket.user}</span>
-                                    </div>
-                                    <span className="text-xs text-gray-600">|</span>
-                                    <span className="text-xs text-gray-400">{ticket.category}</span>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <Button size="sm" variant="ghost" className="text-xs hover:bg-white/5">
-                                        <CheckCircle className="w-4 h-4 mr-2" />
-                                        Resolve
-                                    </Button>
-                                    <Button size="sm" className="text-xs bg-therapy-500/20 text-therapy-400 hover:bg-therapy-500/30">
-                                        <Reply className="w-4 h-4 mr-2" />
-                                        Reply
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <div className="flex items-center space-x-2">
+                                                <div className={`w-1.5 h-1.5 rounded-full ${ticket.status === 'Open' ? 'bg-yellow-400 animate-pulse' : 'bg-gray-500'}`} />
+                                                <span className="text-sm">{ticket.status}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-4 text-sm text-gray-400">{ticket.lastActivity || new Date(ticket.updatedAt).toLocaleDateString()}</td>
+                                        <td className="px-4 py-4 text-right">
+                                            <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                                Reply
+                                                <ExternalLink className="w-3 h-3 ml-2" />
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500 italic">
+                                        No support tickets found.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </GlassCard>
         </div>
     );
 }
 
-function StatSmall({ label, value, color }: { label: string, value: string, color: string }) {
+function StatSmall({ icon: Icon, label, value, color, bg }: { icon: any, label: string, value: string, color: string, bg: string }) {
     return (
-        <GlassCard gradient className="py-4">
-            <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{label}</p>
-            <p className={`text-2xl font-bold ${color}`}>{value}</p>
+        <GlassCard className="!p-4" gradient>
+            <div className="flex items-center space-x-3">
+                <div className={`p-2 rounded-lg ${bg} ${color}`}>
+                    <Icon className="w-4 h-4" />
+                </div>
+                <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wider">{label}</p>
+                    <p className={`text-xl font-bold ${color}`}>{value}</p>
+                </div>
+            </div>
         </GlassCard>
     );
 }

@@ -1,11 +1,43 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { GlassCard } from '@/components/shared/GlassCard';
 import { StatCard } from '@/components/shared/StatCard';
-import { Activity, TrendingUp, Users, Calendar, Clock, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Activity, TrendingUp, Users, Calendar, Clock, ArrowUpRight, ArrowDownRight, Loader2 } from 'lucide-react';
+import { apiHelpers } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 export default function AdminAnalyticsPage() {
+    const [isLoading, setIsLoading] = useState(true);
+    const [data, setData] = useState<any>(null);
+
+    useEffect(() => {
+        const fetchAnalytics = async () => {
+            try {
+                const response = await apiHelpers.admin.getDashboard();
+                setData(response.data.data);
+            } catch (error) {
+                console.error('Failed to fetch analytics:', error);
+                toast.error('Failed to load analytics data');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchAnalytics();
+    }, []);
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <Loader2 className="w-8 h-8 animate-spin text-therapy-500" />
+            </div>
+        );
+    }
+
+    const { stats, charts, popularSpecializations, retention } = data || {};
+
     return (
         <div className="space-y-8">
             <PageHeader
@@ -20,33 +52,33 @@ export default function AdminAnalyticsPage() {
                 <StatCard
                     icon={Users}
                     label="Active Users"
-                    value="8,422"
-                    change="+5.4%"
-                    trend="up"
+                    value={stats?.activeUsers?.value || '0'}
+                    change={stats?.activeUsers?.change || '0%'}
+                    trend={stats?.activeUsers?.trend || 'up'}
                     gradient="from-therapy-500 to-therapy-600"
                 />
                 <StatCard
                     icon={Calendar}
                     label="Sessions (MTD)"
-                    value="1,248"
-                    change="+12.2%"
-                    trend="up"
+                    value={stats?.sessionsMTD?.value || '0'}
+                    change={stats?.sessionsMTD?.change || '0%'}
+                    trend={stats?.sessionsMTD?.trend || 'up'}
                     gradient="from-calm-500 to-calm-600"
                 />
                 <StatCard
                     icon={Clock}
                     label="Avg. Session length"
-                    value="48m"
-                    change="-2.1%"
-                    trend="down"
+                    value={stats?.avgSessionLength?.value || '0m'}
+                    change={stats?.avgSessionLength?.change || '0%'}
+                    trend={stats?.avgSessionLength?.trend || 'up'}
                     gradient="from-blue-500 to-blue-600"
                 />
                 <StatCard
                     icon={TrendingUp}
                     label="Conversion Rate"
-                    value="3.2%"
-                    change="+0.8%"
-                    trend="up"
+                    value={stats?.conversionRate?.value || '0%'}
+                    change={stats?.conversionRate?.change || '0%'}
+                    trend={stats?.conversionRate?.trend || 'up'}
                     gradient="from-indigo-500 to-indigo-600"
                 />
             </div>
@@ -72,7 +104,7 @@ export default function AdminAnalyticsPage() {
                 <GlassCard className="lg:col-span-2" gradient>
                     <h3 className="text-xl font-bold mb-6">Popular Specializations</h3>
                     <div className="space-y-4">
-                        {popularSpecializations.map((spec, i) => (
+                        {(popularSpecializations || defaultSpecializations).map((spec: any, i: number) => (
                             <div key={i} className="space-y-2">
                                 <div className="flex justify-between text-sm">
                                     <span>{spec.name}</span>
@@ -95,30 +127,30 @@ export default function AdminAnalyticsPage() {
                         <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                             <p className="text-sm text-gray-400 mb-1">New Users (7d)</p>
                             <div className="flex items-center justify-between">
-                                <span className="text-2xl font-bold">1,458</span>
-                                <span className="flex items-center text-green-400 text-sm">
-                                    <ArrowUpRight className="w-4 h-4 mr-1" />
-                                    +12%
+                                <span className="text-2xl font-bold">{retention?.newUsers?.value || '0'}</span>
+                                <span className={`flex items-center text-sm ${retention?.newUsers?.trend === 'down' ? 'text-red-400' : 'text-green-400'}`}>
+                                    {retention?.newUsers?.trend === 'down' ? <ArrowDownRight className="w-4 h-4 mr-1" /> : <ArrowUpRight className="w-4 h-4 mr-1" />}
+                                    {retention?.newUsers?.change || '0%'}
                                 </span>
                             </div>
                         </div>
                         <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                             <p className="text-sm text-gray-400 mb-1">Repeat Booking Rate</p>
                             <div className="flex items-center justify-between">
-                                <span className="text-2xl font-bold">64.2%</span>
-                                <span className="flex items-center text-green-400 text-sm">
-                                    <ArrowUpRight className="w-4 h-4 mr-1" />
-                                    +5%
+                                <span className="text-2xl font-bold">{retention?.repeatBookingRate?.value || '0%'}</span>
+                                <span className={`flex items-center text-sm ${retention?.repeatBookingRate?.trend === 'down' ? 'text-red-400' : 'text-green-400'}`}>
+                                    {retention?.repeatBookingRate?.trend === 'down' ? <ArrowDownRight className="w-4 h-4 mr-1" /> : <ArrowUpRight className="w-4 h-4 mr-1" />}
+                                    {retention?.repeatBookingRate?.change || '0%'}
                                 </span>
                             </div>
                         </div>
                         <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                             <p className="text-sm text-gray-400 mb-1">Churn Rate</p>
                             <div className="flex items-center justify-between">
-                                <span className="text-2xl font-bold">2.4%</span>
-                                <span className="flex items-center text-red-400 text-sm">
-                                    <ArrowDownRight className="w-4 h-4 mr-1" />
-                                    +0.2%
+                                <span className="text-2xl font-bold">{retention?.churnRate?.value || '0%'}</span>
+                                <span className={`flex items-center text-sm ${retention?.churnRate?.trend === 'up' ? 'text-red-400' : 'text-green-400'}`}>
+                                    {retention?.churnRate?.trend === 'up' ? <ArrowUpRight className="w-4 h-4 mr-1" /> : <ArrowDownRight className="w-4 h-4 mr-1" />}
+                                    {retention?.churnRate?.change || '0%'}
                                 </span>
                             </div>
                         </div>
@@ -129,10 +161,10 @@ export default function AdminAnalyticsPage() {
     );
 }
 
-const popularSpecializations = [
-    { name: 'Anxiety & Stress', count: 458, percentage: 85 },
-    { name: 'Depression Management', count: 342, percentage: 72 },
-    { name: 'Relationship Counseling', count: 284, percentage: 65 },
-    { name: 'Trauma & PTSD', count: 196, percentage: 45 },
-    { name: 'Personal Growth', count: 124, percentage: 32 },
+const defaultSpecializations = [
+    { name: 'Anxiety & Stress', count: 0, percentage: 0 },
+    { name: 'Depression Management', count: 0, percentage: 0 },
+    { name: 'Relationship Counseling', count: 0, percentage: 0 },
+    { name: 'Trauma & PTSD', count: 0, percentage: 0 },
+    { name: 'Personal Growth', count: 0, percentage: 0 },
 ];

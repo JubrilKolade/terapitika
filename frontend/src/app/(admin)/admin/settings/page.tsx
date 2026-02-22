@@ -1,11 +1,61 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { GlassCard } from '@/components/shared/GlassCard';
-import { Settings, Shield, Bell, Database, Globe, Lock, Save, RefreshCcw } from 'lucide-react';
+import { Settings, Shield, Bell, Database, Globe, Lock, Save, RefreshCcw, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { apiHelpers } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 export default function AdminSettingsPage() {
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [settings, setSettings] = useState<any>(null);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const response = await apiHelpers.admin.getSettings();
+                setSettings(response.data.data);
+            } catch (error) {
+                console.error('Failed to fetch settings:', error);
+                toast.error('Failed to load settings');
+                // Use default settings as fallback
+                setSettings(defaultSettings);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchSettings();
+    }, []);
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await apiHelpers.admin.updateSettings(settings);
+            toast.success('Settings saved successfully');
+        } catch (error) {
+            console.error('Failed to save settings:', error);
+            toast.error('Failed to save settings');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const updateSetting = (key: string, value: any) => {
+        setSettings({ ...settings, [key]: value });
+    };
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <Loader2 className="w-8 h-8 animate-spin text-therapy-500" />
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-8">
             <PageHeader
@@ -13,8 +63,12 @@ export default function AdminSettingsPage() {
                 subtitle="Configure system-wide parameters, security policies, and integrations"
                 icon={Settings}
                 actions={
-                    <Button className="bg-gradient-to-r from-therapy-500 to-calm-500 hover:from-therapy-600 hover:to-calm-600">
-                        <Save className="w-4 h-4 mr-2" />
+                    <Button
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="bg-gradient-to-r from-therapy-500 to-calm-500 hover:from-therapy-600 hover:to-calm-600"
+                    >
+                        {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                         Save All Changes
                     </Button>
                 }
@@ -39,16 +93,20 @@ export default function AdminSettingsPage() {
                             <ToggleSetting
                                 title="Two-Factor Authentication"
                                 description="Enforce 2FA for all administrative accounts"
-                                enabled
+                                enabled={settings?.security?.enforce2FA}
+                                onChange={(val) => updateSetting('security', { ...settings.security, enforce2FA: val })}
                             />
                             <ToggleSetting
                                 title="Session Timeout"
                                 description="Automatically logout inactive admin sessions after 30 minutes"
-                                enabled
+                                enabled={settings?.security?.sessionTimeout}
+                                onChange={(val) => updateSetting('security', { ...settings.security, sessionTimeout: val })}
                             />
                             <ToggleSetting
                                 title="IP Whitelisting"
                                 description="Restrict admin access to specific IP ranges"
+                                enabled={settings?.security?.ipWhitelisting}
+                                onChange={(val) => updateSetting('security', { ...settings.security, ipWhitelisting: val })}
                             />
                         </div>
                     </GlassCard>
@@ -61,7 +119,8 @@ export default function AdminSettingsPage() {
                                     <label className="text-sm text-gray-400">Platform Name</label>
                                     <input
                                         type="text"
-                                        defaultValue="Terapitika Portal"
+                                        value={settings?.system?.platformName || ''}
+                                        onChange={(e) => updateSetting('system', { ...settings.system, platformName: e.target.value })}
                                         className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-therapy-500"
                                     />
                                 </div>
@@ -69,7 +128,8 @@ export default function AdminSettingsPage() {
                                     <label className="text-sm text-gray-400">Support Email</label>
                                     <input
                                         type="email"
-                                        defaultValue="support@terapitika.com"
+                                        value={settings?.system?.supportEmail || ''}
+                                        onChange={(e) => updateSetting('system', { ...settings.system, supportEmail: e.target.value })}
                                         className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-therapy-500"
                                     />
                                 </div>
@@ -78,6 +138,8 @@ export default function AdminSettingsPage() {
                                 <label className="text-sm text-gray-400">Custom System Message (Maintenance)</label>
                                 <textarea
                                     rows={3}
+                                    value={settings?.system?.maintenanceMessage || ''}
+                                    onChange={(e) => updateSetting('system', { ...settings.system, maintenanceMessage: e.target.value })}
                                     placeholder="System is undergoing maintenance..."
                                     className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-1 focus:ring-therapy-500"
                                 />
@@ -113,16 +175,32 @@ function SettingsTab({ icon: Icon, label, active = false }: { icon: any, label: 
     );
 }
 
-function ToggleSetting({ title, description, enabled = false }: { title: string, description: string, enabled?: boolean }) {
+function ToggleSetting({ title, description, enabled = false, onChange }: { title: string, description: string, enabled?: boolean, onChange: (val: boolean) => void }) {
     return (
         <div className="flex items-center justify-between">
             <div>
                 <p className="font-semibold">{title}</p>
                 <p className="text-sm text-gray-400">{description}</p>
             </div>
-            <button className={`w-12 h-6 rounded-full transition-colors relative ${enabled ? 'bg-therapy-500' : 'bg-white/10'}`}>
+            <button
+                onClick={() => onChange(!enabled)}
+                className={`w-12 h-6 rounded-full transition-colors relative ${enabled ? 'bg-therapy-500' : 'bg-white/10'}`}
+            >
                 <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${enabled ? 'left-7' : 'left-1'}`} />
             </button>
         </div>
     );
 }
+
+const defaultSettings = {
+    security: {
+        enforce2FA: true,
+        sessionTimeout: true,
+        ipWhitelisting: false,
+    },
+    system: {
+        platformName: 'Terapitika Portal',
+        supportEmail: 'support@terapitika.com',
+        maintenanceMessage: '',
+    }
+};

@@ -1,43 +1,45 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Calendar, Clock, Video, Phone, MessageSquare, Filter } from 'lucide-react';
+import { Calendar, Clock, Filter, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-
-const sessions = [
-  {
-    id: '1',
-    client: 'Sarah Mitchell',
-    status: 'upcoming',
-    mode: 'Video',
-    date: 'Today',
-    time: '3:00 PM',
-    duration: '50 min',
-  },
-  {
-    id: '2',
-    client: 'James Wilson',
-    status: 'completed',
-    mode: 'Chat',
-    date: 'Yesterday',
-    time: '11:00 AM',
-    duration: '50 min',
-  },
-  {
-    id: '3',
-    client: 'Emily Chen',
-    status: 'upcoming',
-    mode: 'Voice',
-    date: 'Tomorrow',
-    time: '9:30 AM',
-    duration: '50 min',
-  },
-];
+import { apiHelpers } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 const TherapistSessionsPage = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [sessions, setSessions] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        const response = await apiHelpers.sessions.getMine({ role: 'therapist' });
+        setSessions(response.data.data || []);
+      } catch (error) {
+        console.error('Failed to fetch sessions:', error);
+        toast.error('Failed to load sessions');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSessions();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <DashboardLayout type="therapist">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-therapy-500" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout type="therapist">
       <div className="space-y-8">
@@ -49,12 +51,12 @@ const TherapistSessionsPage = () => {
             </p>
           </div>
           <div className="flex items-center space-x-3">
-            <Button variant="outline" className="border-white/10 text-white">
+            <Button variant="outline" className="border-white/10 text-white hover:bg-white/5">
               <Filter className="w-4 h-4 mr-2" />
               Filter
             </Button>
             <Link href="/therapist/schedule">
-              <Button className="bg-gradient-to-r from-therapy-500 to-calm-500 hover:from-therapy-600 hover:to-calm-600">
+              <Button className="bg-gradient-to-r from-therapy-500 to-calm-500 hover:from-therapy-600 hover:to-calm-600 shadow-lg shadow-therapy-500/20">
                 Manage availability
               </Button>
             </Link>
@@ -62,20 +64,20 @@ const TherapistSessionsPage = () => {
         </div>
 
         <Tabs defaultValue="upcoming" className="space-y-6">
-          <TabsList className="bg-white/5 border border-white/10">
+          <TabsList className="bg-white/5 border border-white/10 text-white">
             <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
             <TabsTrigger value="completed">Completed</TabsTrigger>
             <TabsTrigger value="all">All</TabsTrigger>
           </TabsList>
 
           <TabsContent value="upcoming">
-            <SessionList filter="upcoming" />
+            <SessionList items={sessions.filter(s => s.status === 'upcoming' || s.status === 'confirmed')} filter="upcoming" />
           </TabsContent>
           <TabsContent value="completed">
-            <SessionList filter="completed" />
+            <SessionList items={sessions.filter(s => s.status === 'completed')} filter="completed" />
           </TabsContent>
           <TabsContent value="all">
-            <SessionList filter="all" />
+            <SessionList items={sessions} filter="all" />
           </TabsContent>
         </Tabs>
       </div>
@@ -83,70 +85,78 @@ const TherapistSessionsPage = () => {
   );
 };
 
-const SessionList = ({ filter }: { filter: 'upcoming' | 'completed' | 'all' }) => {
-  const items =
-    filter === 'all'
-      ? sessions
-      : sessions.filter((session) => session.status === filter);
-
+const SessionList = ({ items, filter }: { items: any[], filter: 'upcoming' | 'completed' | 'all' }) => {
   if (items.length === 0) {
     return (
-      <Card className="bg-white/5 border-white/10 backdrop-blur-xl">
-        <CardContent className="py-12 text-center text-gray-400">
-          No sessions in this view yet.
+      <Card className="bg-white/5 border-white/10 backdrop-blur-xl border-none">
+        <CardContent className="py-20 text-center text-gray-500 italic">
+          No {filter !== 'all' ? filter : ''} sessions found.
         </CardContent>
       </Card>
     );
   }
 
+  const formatDateTime = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return {
+      date: d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }),
+      time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+  };
+
   return (
-    <Card className="bg-white/5 border-white/10 backdrop-blur-xl">
+    <Card className="bg-white/5 border-white/10 backdrop-blur-xl border-none">
       <CardHeader>
-        <CardTitle className="text-white">Session list</CardTitle>
+        <CardTitle className="text-white">Session History</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {items.map((session) => (
-          <div
-            key={session.id}
-            className="p-4 rounded-xl bg-white/5 border border-white/10 hover:border-therapy-500/40 transition-all cursor-pointer flex items-center justify-between"
-          >
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-therapy-400 to-calm-400 flex items-center justify-center font-semibold">
-                {session.client.charAt(0)}
-              </div>
-              <div>
-                <div className="font-semibold text-white">{session.client}</div>
-                <div className="flex items-center text-xs text-gray-400 space-x-2">
-                  <Calendar className="w-3 h-3" />
-                  <span>
-                    {session.date}, {session.time}
-                  </span>
-                  <span>•</span>
-                  <Clock className="w-3 h-3" />
-                  <span>{session.duration}</span>
+      <CardContent className="space-y-4">
+        {items.map((session) => {
+          const { date, time } = formatDateTime(session.startTime);
+          return (
+            <div
+              key={session.id}
+              className="p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-therapy-500/40 transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4"
+            >
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-therapy-400 to-calm-400 flex items-center justify-center text-xl font-bold text-white shadow-lg">
+                  {session.userName?.charAt(0) || 'C'}
+                </div>
+                <div>
+                  <div className="font-bold text-white text-lg">{session.userName || 'Anonymous Client'}</div>
+                  <div className="flex items-center text-xs text-gray-400 space-x-3 mt-1">
+                    <div className="flex items-center">
+                      <Calendar className="w-3.5 h-3.5 mr-1.5 text-therapy-400" />
+                      <span>{date}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Clock className="w-3.5 h-3.5 mr-1.5 text-calm-400" />
+                      <span>{time}</span>
+                    </div>
+                    <span>•</span>
+                    <span>{session.duration || 50} min</span>
+                  </div>
                 </div>
               </div>
+              <div className="flex items-center gap-4">
+                <span
+                  className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${session.mode === 'Video'
+                      ? 'bg-therapy-500/20 text-therapy-300'
+                      : session.mode === 'Voice'
+                        ? 'bg-calm-500/20 text-calm-300'
+                        : 'bg-blue-500/20 text-blue-300'
+                    }`}
+                >
+                  {session.mode || 'Video'}
+                </span>
+                <Link href={`/therapist/session/${session.id}`}>
+                  <Button size="sm" className="bg-gradient-to-r from-therapy-500 to-calm-500 shadow-lg shadow-therapy-500/20 px-6">
+                    {session.status === 'upcoming' || session.status === 'confirmed' ? 'Join' : 'View Details'}
+                  </Button>
+                </Link>
+              </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                  session.mode === 'Video'
-                    ? 'bg-therapy-500/20 text-therapy-300'
-                    : session.mode === 'Voice'
-                    ? 'bg-calm-500/20 text-calm-300'
-                    : 'bg-blue-500/20 text-blue-300'
-                }`}
-              >
-                {session.mode}
-              </span>
-              <Link href={`/therapist/session/${session.id}`}>
-                <Button size="sm" className="bg-gradient-to-r from-therapy-500 to-calm-500">
-                  Join
-                </Button>
-              </Link>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </CardContent>
     </Card>
   );
