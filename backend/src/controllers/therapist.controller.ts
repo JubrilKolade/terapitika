@@ -90,3 +90,19 @@ export const verifyLicense = asyncHandler(async (req: AuthRequest, res: Response
   logAuditEvent(req.user?.id, 'therapist_verified', 'therapist', id, { status });
   return sendSuccess(res, therapist, 'Verification status updated');
 });
+export const getClients = asyncHandler(async (req: AuthRequest, res: Response) => {
+  if (!req.user) return sendError(res, 'Not authenticated', 401);
+  const therapist = await TherapistService.getTherapistByUserId(req.user.id);
+  if (!therapist) return sendError(res, 'Therapist profile not found', 404);
+  const { page = 1, limit = 20 } = req.query;
+  const result = await TherapistService.getClients(therapist.id, parseInt(page as string), parseInt(limit as string));
+  return sendSuccess(res, result);
+});
+
+export const getEarnings = asyncHandler(async (req: AuthRequest, res: Response) => {
+  if (!req.user) return sendError(res, 'Not authenticated', 401);
+  const therapist = await TherapistService.getTherapistByUserId(req.user.id);
+  if (!therapist) return sendError(res, 'Therapist profile not found', 404);
+  const earnings = await TherapistService.getEarnings(therapist.id);
+  return sendSuccess(res, earnings);
+});

@@ -17,6 +17,9 @@ router.patch('/me/profile', authenticate, requireTherapist, sanitizeBody, Therap
 router.get('/me/stats', authenticate, requireTherapist, TherapistController.getStats);
 router.patch('/me/availability', authenticate, requireTherapist, sanitizeBody, TherapistController.updateAvailability);
 router.post('/me/documents', authenticate, requireTherapist, sanitizeBody, TherapistController.uploadDocuments);
+router.get('/me/clients', authenticate, requireTherapist, validatePaginationParams, TherapistController.getClients);
+router.get('/me/earnings', authenticate, requireTherapist, TherapistController.getEarnings);
+router.get('/me/settings', authenticate, requireTherapist, TherapistController.getProfile);
 
 // Admin routes
 router.get('/pending/verifications', authenticate, requireAdmin, validatePaginationParams, TherapistController.getPendingVerifications);
