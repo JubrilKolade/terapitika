@@ -31,6 +31,7 @@ export interface IUser {
   oauth_id?: string;
   emergency_contact?: EmergencyContact;
   preferences?: UserPreferences;
+  stripe_customer_id?: string;
   created_at: Date;
   updated_at: Date;
   last_login_at?: Date;
