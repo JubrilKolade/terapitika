@@ -13,6 +13,8 @@ import SupportMessage from './supportMessage.model';
 import Notification from './notification.model';
 import AuditLog from './auditLog.model';
 import AIConversation from './aiConversation.model';
+import MoodLog from './moodLog.model';
+import SystemSetting from './systemSetting.model';
 
 // ── Booking associations ──────────────────────────────────────
 Booking.belongsTo(User, { foreignKey: 'client_id', as: 'client' });
@@ -59,6 +61,10 @@ AIConversation.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 AIConversation.belongsTo(GuestSession, { foreignKey: 'guest_session_id', as: 'guestSession' });
 AIConversation.belongsTo(Session, { foreignKey: 'session_id', as: 'session' });
 
+// ── MoodLog associations ─────────────────────────────────────
+MoodLog.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+User.hasMany(MoodLog, { foreignKey: 'user_id', as: 'mood_logs' });
+
 // Export all models
 export {
   User,
@@ -76,6 +82,8 @@ export {
   Notification,
   AuditLog,
   AIConversation,
+  MoodLog,
+  SystemSetting,
 };
 
 // Initialize all model associations
@@ -102,6 +110,8 @@ export async function syncModels(force = false): Promise<void> {
     await Notification.sync({ force });
     await AuditLog.sync({ force });
     await AIConversation.sync({ force });
+    await MoodLog.sync({ force });
+    await SystemSetting.sync({ force });
     console.log('✓ All models synchronized');
   } catch (error) {
     console.error('✗ Model synchronization failed:', error);
@@ -112,6 +122,6 @@ export async function syncModels(force = false): Promise<void> {
 export default {
   User, Therapist, Session, Message, GuestSession,
   Booking, Review, Payment, Subscription, CrisisLog,
-  SupportTicket, SupportMessage, Notification, AuditLog, AIConversation,
+  SupportTicket, SupportMessage, Notification, AuditLog, AIConversation, MoodLog, SystemSetting,
   initializeModels, syncModels,
 };

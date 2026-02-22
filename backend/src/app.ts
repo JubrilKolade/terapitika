@@ -29,6 +29,7 @@ import reviewRoutes from './routes/review.route';
 import supportRoutes from './routes/support.route';
 import notificationRoutes from './routes/notification.route';
 import adminRoutes from './routes/admin.route';
+import analyticsRoutes from './routes/analytics.route';
 
 /**
  * Initialize all middlewares
@@ -101,6 +102,7 @@ const initializeRoutes = (app: Application): void => {
   app.use('/api/support', supportRoutes);
   app.use('/api/notifications', notificationRoutes);
   app.use('/api/admin', adminRoutes);
+  app.use('/api/analytics', analyticsRoutes);
 
   // Root endpoint
   app.get('/', (req: Request, res: Response) => {

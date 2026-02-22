@@ -84,6 +84,10 @@ export const apiHelpers = {
       api.post('/auth/reset-password', { token, newPassword }),
     verifyEmail: (token: string) =>
       api.post('/auth/verify-email', { token }),
+    sendVerification: () =>
+      api.post('/auth/send-verification'),
+    getStatus: () =>
+      api.get('/auth/status'),
   },
 
   // Users
@@ -102,6 +106,8 @@ export const apiHelpers = {
       api.patch('/users/me/preferences', settings),
     getStats: () =>
       api.get('/users/me/stats'),
+    deactivateAccount: () =>
+      api.post('/users/me/deactivate'),
     deleteAccount: () =>
       api.delete('/users/me'),
   },
@@ -142,6 +148,22 @@ export const apiHelpers = {
       api.delete(`/sessions/${sessionId}`, { data: { reason } }),
   },
 
+  // AI
+  ai: {
+    guestChat: (data: any) =>
+      api.post('/ai/guest/chat', data),
+    startChat: () =>
+      api.post('/ai/chat/start'),
+    sendChatMessage: (data: any) =>
+      api.post('/ai/chat/message', data),
+    endChat: (data: any) =>
+      api.post('/ai/chat/end', data),
+    getSessionMessages: (sessionId: string) =>
+      api.get(`/ai/sessions/${sessionId}/messages`),
+    getCopingStrategies: (data: any) =>
+      api.post('/ai/coping-strategies', data),
+  },
+
   // Bookings
   bookings: {
     create: (data: any) =>
@@ -158,6 +180,10 @@ export const apiHelpers = {
       api.post(`/bookings/${id}/reschedule`, { scheduledAt }),
     getAvailableSlots: (therapistId: string, date: string, duration?: number) =>
       api.get('/bookings/available-slots', { params: { therapistId, date, duration } }),
+    startSession: (id: string) =>
+      api.post(`/bookings/${id}/start`),
+    endSession: (id: string) =>
+      api.post(`/bookings/${id}/end`),
   },
 
   // Chat
@@ -174,6 +200,20 @@ export const apiHelpers = {
       api.patch(`/chat/${sessionId}/read`),
     getUnreadCount: (sessionId: string) =>
       api.get(`/chat/${sessionId}/unread`),
+  },
+
+  // Video
+  video: {
+    createRoom: (data: any) =>
+      api.post('/video/room/create', data),
+    getToken: (id: string) =>
+      api.get(`/video/room/${id}/token`),
+    endRoom: (id: string) =>
+      api.delete(`/video/room/${id}`),
+    getParticipants: (id: string) =>
+      api.get(`/video/room/${id}/participants`),
+    initiateVoiceCall: (data: any) =>
+      api.post('/video/voice/call/initiate', data),
   },
 
   // Payments
@@ -194,6 +234,24 @@ export const apiHelpers = {
       api.delete(`/payments/methods/${id}`),
     setDefaultPaymentMethod: (id: string) =>
       api.post(`/payments/methods/${id}/default`),
+    processRefund: (data: any) =>
+      api.post('/payments/refund', data),
+    getInvoice: (id: string) =>
+      api.get(`/payments/invoice/${id}`),
+  },
+
+  // Reviews
+  reviews: {
+    create: (data: any) =>
+      api.post('/reviews', data),
+    getTherapistReviews: (id: string) =>
+      api.get(`/reviews/therapist/${id}`),
+    update: (id: string, data: any) =>
+      api.patch(`/reviews/${id}`, data),
+    delete: (id: string) =>
+      api.delete(`/reviews/${id}`),
+    respond: (id: string, data: any) =>
+      api.post(`/reviews/${id}/respond`, data),
   },
 
   // Support
@@ -208,6 +266,8 @@ export const apiHelpers = {
       api.post(`/support/tickets/${id}/messages`, { message, isInternal }),
     closeTicket: (id: string) =>
       api.post(`/support/tickets/${id}/close`),
+    updateTicket: (id: string, data: any) =>
+      api.patch(`/support/tickets/${id}`, data),
   },
 
   // Notifications
@@ -220,6 +280,8 @@ export const apiHelpers = {
       api.patch('/notifications/read-all'),
     delete: (id: string) =>
       api.delete(`/notifications/${id}`),
+    getUnread: () =>
+      api.get('/notifications/unread'),
   },
 
   // Analytics
@@ -227,9 +289,9 @@ export const apiHelpers = {
     getUserProgress: () =>
       api.get('/analytics/progress'),
     getMoodTrends: (startDate?: string, endDate?: string) =>
-      api.get('/analytics/mood', { params: { startDate, endDate } }),
-    logMood: (mood: number, energy: number, anxiety: number, notes?: string) =>
-      api.post('/analytics/mood', { mood, energy, anxiety, notes }),
+      api.get('/analytics/mood-trends', { params: { startDate, endDate } }),
+    logMood: (mood: number, energyLevel: number, anxietyLevel: number, notes?: string) =>
+      api.post('/analytics/mood', { mood, energyLevel, anxietyLevel, notes }),
   },
 
   // Admin
@@ -252,6 +314,12 @@ export const apiHelpers = {
       api.get('/admin/crisis-logs', { params }),
     getAuditLogs: (params?: any) =>
       api.get('/admin/audit-logs', { params }),
+    getSettings: () =>
+      api.get('/admin/settings'),
+    updateSettings: (data: any) =>
+      api.patch('/admin/settings', data),
+    broadcast: (data: any) =>
+      api.post('/admin/broadcast', data),
   },
 
   // Subscriptions
@@ -280,8 +348,20 @@ export const apiHelpers = {
       api.get('/therapists/me/stats'),
     updateAvailability: (data: any) =>
       api.patch('/therapists/me/availability', data),
+    getAvailability: (params?: any) =>
+      api.get('/therapists/me/availability', { params }),
     uploadDocuments: (data: any) =>
       api.post('/therapists/me/documents', data),
+    getClients: (params?: any) =>
+      api.get('/therapists/me/clients', { params }),
+    getEarnings: (params?: any) =>
+      api.get('/therapists/me/earnings', { params }),
+    getSettings: () =>
+      api.get('/therapists/me/settings'),
+    updateSettings: (data: any) =>
+      api.patch('/therapists/me/settings', data),
+    submitApplication: (data: any) =>
+      api.post('/therapists/register', data),
   },
 };
 
