@@ -4,7 +4,13 @@ import { PaymentStatus, IPayment } from '../types';
 import config from '../config/environment';
 import logger from '../utils/logger';
 
-const stripe = new Stripe(config.stripe?.secretKey || '', { apiVersion: '2025-01-27.acacia' as any });
+let stripe: Stripe;
+
+if (config.stripe?.secretKey) {
+    stripe = new Stripe(config.stripe.secretKey, { apiVersion: '2025-01-27.acacia' as any });
+} else {
+    logger.warn('Stripe API key is missing. Payment functionality will be disabled.');
+}
 
 export const createPaymentIntent = async (data: {
     userId: string;
