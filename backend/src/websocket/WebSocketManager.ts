@@ -1,6 +1,7 @@
 import { Server as HTTPServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import { verifyAccessToken, extractTokenFromHeader } from '../config/jwt';
+import config from '../config/environment';
 import logger from '../utils/logger';
 import { SocketUser } from '../types';
 import { registerChatHandlers } from './chatHandler';
@@ -13,9 +14,9 @@ import { registerPresenceHandlers } from './presenceHandler';
 export const initializeWebSocket = (httpServer: HTTPServer): Server => {
     const io = new Server(httpServer, {
         cors: {
-            origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'],
+            origin: config.cors.origin,
             methods: ['GET', 'POST'],
-            credentials: true,
+            credentials: config.cors.credentials,
         },
         pingTimeout: 60000,
         pingInterval: 25000,

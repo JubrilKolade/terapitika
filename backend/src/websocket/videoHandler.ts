@@ -4,6 +4,61 @@ import logger from '../utils/logger';
 export const registerVideoHandlers = (io: Server, socket: Socket) => {
     const user = (socket as any).user;
 
+    const normalizeRoomId = (payload: unknown): string | null => {
+        if (payload && typeof payload === 'object' && 'roomId' in payload) {
+            const v = (payload as any).roomId;
+            if (typeof v === 'string') return v;
+        }
+        if (payload && typeof payload === 'object' && 'sessionId' in payload) {
+            const v = (payload as any).sessionId;
+            if (typeof v === 'string') return v;
+        }
+        return null;
+    };
+
+    // Generic call room (frontend compatibility)
+    socket.on('call:join', (payload: unknown) => {
+        const roomId = normalizeRoomId(payload);
+        if (!roomId) return;
+
+        socket.join(`call:${roomId}`);
+        // also join video room so both namespaces work
+        socket.join(`video:${roomId}`);
+
+        socket.to(`call:${roomId}`).emit('call:user:joined', { userId: user.userId, socketId: socket.id, roomId });
+        socket.to(`video:${roomId}`).emit('video:user-joined', { userId: user.userId, socketId: socket.id });
+        logger.debug(`User ${user.userId} joined call room: ${roomId}`);
+    });
+
+    socket.on('call:leave', (payload: unknown) => {
+        const roomId = normalizeRoomId(payload);
+        if (!roomId) return;
+
+        socket.leave(`call:${roomId}`);
+        socket.leave(`video:${roomId}`);
+
+        socket.to(`call:${roomId}`).emit('call:user:left', { userId: user.userId, roomId });
+        socket.to(`video:${roomId}`).emit('video:user-left', { userId: user.userId });
+        logger.debug(`User ${user.userId} left call room: ${roomId}`);
+    });
+
+    socket.on('call:signal', (data: { roomId: string; signal: any; to: string }) => {
+        io.to(`user:${data.to}`).emit('call:signal', {
+            from: user.userId,
+            roomId: data.roomId,
+            signal: data.signal,
+        });
+    });
+
+    socket.on('call:end', (payload: unknown) => {
+        const roomId = normalizeRoomId(payload);
+        if (!roomId) return;
+        io.to(`call:${roomId}`).emit('call:ended', { roomId, by: user.userId });
+        io.to(`video:${roomId}`).emit('video:call-ended', { from: user.userId, sessionId: roomId });
+        socket.leave(`call:${roomId}`);
+        socket.leave(`video:${roomId}`);
+    });
+
     // Join video room
     socket.on('video:join', (data: { sessionId: string }) => {
         socket.join(`video:${data.sessionId}`);

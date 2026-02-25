@@ -4,6 +4,12 @@ import path from 'path';
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
+const splitCsv = (value?: string): string[] =>
+  (value ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
 interface Config {
   env: string;
   port: number;
@@ -239,8 +245,10 @@ const config: Config = {
   },
   
   cors: {
-    origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'],
-    credentials: process.env.CORS_CREDENTIALS === 'true',
+    origin: splitCsv(process.env.CORS_ORIGIN).length
+      ? splitCsv(process.env.CORS_ORIGIN)
+      : ['http://localhost:3000'],
+    credentials: process.env.CORS_CREDENTIALS !== 'false',
   },
   
   features: {
@@ -254,16 +262,51 @@ const config: Config = {
 
 // Validate required environment variables
 function validateConfig(): void {
-  const requiredVars = [
-    'JWT_SECRET',
-    'JWT_REFRESH_SECRET',
-    'ENCRYPTION_KEY',
-  ];
-  
-  const missing = requiredVars.filter(varName => !process.env[varName]);
-  
-  if (missing.length > 0 && config.env === 'production') {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  const isProd = config.env === 'production';
+  if (!isProd) return;
+
+  const missing: string[] = [];
+  const invalid: string[] = [];
+
+  const requireNonEmpty = (name: string, value: string) => {
+    if (!value) missing.push(name);
+  };
+
+  requireNonEmpty('JWT_SECRET', process.env.JWT_SECRET || '');
+  requireNonEmpty('JWT_REFRESH_SECRET', process.env.JWT_REFRESH_SECRET || '');
+  requireNonEmpty('ENCRYPTION_KEY', process.env.ENCRYPTION_KEY || '');
+
+  // Prevent known insecure defaults in production
+  if (config.jwt.secret === 'change-this-secret') invalid.push('JWT_SECRET is using a default placeholder');
+  if (config.jwt.refreshSecret === 'change-this-refresh-secret') invalid.push('JWT_REFRESH_SECRET is using a default placeholder');
+  if (config.security.sessionSecret === 'change-this-session-secret') invalid.push('SESSION_SECRET is using a default placeholder');
+  if (config.security.cookieSecret === 'change-this-cookie-secret') invalid.push('COOKIE_SECRET is using a default placeholder');
+
+  // Database must be configured (either DATABASE_URL or password-based config)
+  if (!config.database.url && !config.database.password) {
+    missing.push('DATABASE_URL (or DB_PASSWORD)');
+  }
+
+  // Redis should be configured (URL or host/port is fine, but URL is most common)
+  if (!config.redis.url && !config.redis.host) {
+    missing.push('REDIS_URL (or REDIS_HOST)');
+  }
+
+  // Feature-conditional requirements
+  if (config.features.enableAiChat && !config.ai.anthropic.apiKey && !config.ai.openai.apiKey) {
+    missing.push('ANTHROPIC_API_KEY or OPENAI_API_KEY (AI chat enabled)');
+  }
+
+  if ((config.features.enableVideoSessions || config.features.enableVoiceSessions) &&
+      (!config.twilio.accountSid || !config.twilio.authToken)) {
+    missing.push('TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN (video/voice enabled)');
+  }
+
+  if (missing.length || invalid.length) {
+    const parts: string[] = [];
+    if (missing.length) parts.push(`Missing: ${missing.join(', ')}`);
+    if (invalid.length) parts.push(`Invalid: ${invalid.join(', ')}`);
+    throw new Error(parts.join(' | '));
   }
 }
 
