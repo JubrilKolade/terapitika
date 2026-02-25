@@ -233,7 +233,7 @@ export default function RegisterPage() {
                           : 'border-white/10 bg-white/5 hover:bg-white/10'
                           }`}
                       >
-                        <h3 className="text-lg font-semibold mb-2">I'm seeking therapy</h3>
+                        <h3 className="text-lg font-semibold mb-2">I&apos;m seeking therapy</h3>
                         <p className="text-sm text-gray-400">Connect with licensed therapists and AI support</p>
                       </button>
 
@@ -245,7 +245,7 @@ export default function RegisterPage() {
                           : 'border-white/10 bg-white/5 hover:bg-white/10'
                           }`}
                       >
-                        <h3 className="text-lg font-semibold mb-2">I'm a therapist</h3>
+                        <h3 className="text-lg font-semibold mb-2">I&apos;m a therapist</h3>
                         <p className="text-sm text-gray-400">Join our network of licensed professionals</p>
                       </button>
                     </div>

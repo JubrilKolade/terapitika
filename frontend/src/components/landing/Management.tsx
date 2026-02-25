@@ -16,7 +16,7 @@ export function Management() {
                         <span className="bg-gradient-to-r from-therapy-400 to-calm-400 bg-clip-text text-transparent">continuous improvement</span>
                     </h2>
                     <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-                        Effortlessly manage and improve your AI agent's performance, ensuring it gets better with every interaction.
+                        Effortlessly manage and improve your AI agent&apos;s performance, ensuring it gets better with every interaction.
                     </p>
                 </div>
 

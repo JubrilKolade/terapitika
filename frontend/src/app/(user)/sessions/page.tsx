@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Video, MessageSquare, Mic, Shield, X, Maximize2, Settings, Send, Paperclip, Smile, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { useSearchParams } from 'next/navigation';
 import { apiHelpers } from '@/lib/api';
 import toast from 'react-hot-toast';
 
-export default function SessionRoom() {
+function SessionRoomInner() {
     const { user } = useAuthStore();
     const searchParams = useSearchParams();
     const sessionId = searchParams.get('sessionId');
@@ -142,4 +142,19 @@ export default function SessionRoom() {
             </main>
         </div>
     );
+}
+
+export default function SessionRoom() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0A0A0F] text-white flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-12 h-12 animate-spin text-therapy-500 mx-auto" />
+          <p className="text-gray-400">Loading session room...</p>
+        </div>
+      </div>
+    }>
+      <SessionRoomInner />
+    </Suspense>
+  );
 }

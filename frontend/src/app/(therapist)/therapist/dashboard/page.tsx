@@ -148,7 +148,7 @@ export default function TherapistDashboard() {
           <h1 className="text-4xl font-bold mb-2">
             Welcome back, <span className="bg-gradient-to-r from-therapy-400 to-calm-400 bg-clip-text text-transparent">Dr. {user?.lastName}</span>
           </h1>
-          <p className="text-gray-400">Here's what's happening with your practice today</p>
+          <p className="text-gray-400">Here&apos;s what&apos;s happening with your practice today</p>
         </div>
 
         {/* Stats Grid */}
@@ -181,7 +181,7 @@ export default function TherapistDashboard() {
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center space-x-3">
                 <Calendar className="w-6 h-6 text-therapy-400" />
-                <span>Today's Schedule</span>
+                <span>Today&apos;s Schedule</span>
               </CardTitle>
               <div className="flex items-center space-x-2">
                 <Button size="sm" variant="ghost" className="hover:bg-white/10">

@@ -58,7 +58,7 @@ export function CTA() {
             <section className="relative py-32 px-4 text-center border-t border-white/5">
                 <div className="max-w-4xl mx-auto space-y-12">
                     <h2 className="text-5xl md:text-6xl font-display font-bold">
-                        Let's talk—book <br />
+                        Let&apos;s talk—book <br />
                         <span className="text-calm-400">a free consultation!</span>
                     </h2>
 

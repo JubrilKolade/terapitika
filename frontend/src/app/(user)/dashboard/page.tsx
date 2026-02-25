@@ -158,7 +158,7 @@ export default function Dashboard() {
             <h1 className="text-4xl font-bold mb-2">
               Welcome back, <span className="bg-gradient-to-r from-therapy-400 to-calm-400 bg-clip-text text-transparent">{user?.firstName}</span>
             </h1>
-            <p className="text-gray-400">Here's your mental health dashboard for {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+            <p className="text-gray-400">Here&apos;s your mental health dashboard for {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
           </div>
           <div className="hidden md:block text-right">
             <div className="text-2xl font-mono font-bold bg-gradient-to-r from-therapy-400 to-calm-400 bg-clip-text text-transparent">
