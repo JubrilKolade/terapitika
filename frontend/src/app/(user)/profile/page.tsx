@@ -1,26 +1,45 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Mail, Camera, Shield, CreditCard, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAuthStore } from '@/store/authstore';
 import { apiHelpers } from '@/lib/api';
+import { normalizeUser } from '@/lib/auth';
 
 export default function ProfilePage() {
-  const { user, updateUser } = useAuthStore();
+  const { user, updateUser, logout, fetchCurrentUser } = useAuthStore();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [firstName, setFirstName] = useState(user?.firstName || '');
-  const [lastName, setLastName] = useState(user?.lastName || '');
-  const [phone, setPhone] = useState(user?.phone || '');
+  const [loading, setLoading] = useState(true);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const profile = await fetchCurrentUser();
+        if (profile) {
+          setFirstName(profile.firstName);
+          setLastName(profile.lastName);
+          setPhone(profile.phone || '');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadProfile();
+  }, [fetchCurrentUser]);
 
   const handleSave = async () => {
     try {
       setSaving(true);
       const response = await apiHelpers.users.updateProfile({ firstName, lastName, phone });
-      updateUser(response.data.data);
+      const normalized = normalizeUser(response.data.data);
+      if (normalized) updateUser(normalized);
       setEditing(false);
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to update profile');
@@ -33,11 +52,22 @@ export default function ProfilePage() {
     if (!confirm('Are you sure you want to permanently delete your account? This cannot be undone.')) return;
     try {
       await apiHelpers.users.deleteAccount();
+      logout();
       window.location.href = '/login';
     } catch (err: any) {
       alert(err.response?.data?.message || 'Failed to delete account');
     }
   };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-therapy-400" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -48,12 +78,11 @@ export default function ProfilePage() {
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
-          {/* Sidebar / Photo */}
           <Card className="md:col-span-1 bg-white/5 border-white/10 backdrop-blur-xl h-fit">
             <CardContent className="p-6 text-center">
               <div className="relative inline-block mb-4 group">
                 <div className="w-32 h-32 rounded-full bg-gradient-to-br from-therapy-400 to-calm-400 flex items-center justify-center text-4xl font-bold">
-                  {user?.firstName?.charAt(0)}
+                  {user?.firstName?.charAt(0) || '?'}
                 </div>
                 <button className="absolute bottom-0 right-0 p-2 bg-therapy-500 rounded-full text-white shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
                   <Camera size={16} />
@@ -77,7 +106,6 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          {/* Main Info */}
           <div className="md:col-span-2 space-y-6">
             <Card className="bg-white/5 border-white/10 backdrop-blur-xl">
               <CardHeader className="flex flex-row items-center justify-between">

@@ -6,12 +6,14 @@ import { motion } from 'framer-motion';
 import { Brain, Mail, Lock, Eye, EyeOff, User, ArrowRight, Sparkles, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/authstore';
+import { getDashboardPath } from '@/lib/auth';
+import { UserRole } from '@/types';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register, isLoadingAuth, isAuthenticated } = useAuthStore();
+  const { register, isLoadingAuth, isAuthenticated, user } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -20,7 +22,7 @@ export default function RegisterPage() {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'CLIENT',
+    role: UserRole.CLIENT,
     acceptTerms: false,
   });
 
@@ -33,19 +35,19 @@ export default function RegisterPage() {
     }
 
     try {
-      await register(formData);
+      const newUser = await register(formData);
       toast.success('Account created successfully!');
-      router.push('/dashboard');
+      router.push(getDashboardPath(newUser.role));
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Registration failed');
     }
   };
 
   useEffect(() => {
-    if (isAuthenticated) {
-      router.push('/dashboard');
+    if (isAuthenticated && user) {
+      router.push(getDashboardPath(user.role));
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, user, router]);
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-[#0A0A0F] via-[#1a1a2e] to-[#0A0A0F]">
@@ -227,8 +229,8 @@ export default function RegisterPage() {
                     <div className="space-y-4">
                       <button
                         type="button"
-                        onClick={() => setFormData({ ...formData, role: 'CLIENT' })}
-                        className={`w-full p-6 rounded-xl border-2 transition-all ${formData.role === 'CLIENT'
+                        onClick={() => setFormData({ ...formData, role: UserRole.CLIENT })}
+                        className={`w-full p-6 rounded-xl border-2 transition-all ${formData.role === UserRole.CLIENT
                           ? 'border-therapy-500 bg-therapy-500/20'
                           : 'border-white/10 bg-white/5 hover:bg-white/10'
                           }`}
@@ -239,8 +241,8 @@ export default function RegisterPage() {
 
                       <button
                         type="button"
-                        onClick={() => setFormData({ ...formData, role: 'THERAPIST' })}
-                        className={`w-full p-6 rounded-xl border-2 transition-all ${formData.role === 'THERAPIST'
+                        onClick={() => setFormData({ ...formData, role: UserRole.THERAPIST })}
+                        className={`w-full p-6 rounded-xl border-2 transition-all ${formData.role === UserRole.THERAPIST
                           ? 'border-calm-500 bg-calm-500/20'
                           : 'border-white/10 bg-white/5 hover:bg-white/10'
                           }`}

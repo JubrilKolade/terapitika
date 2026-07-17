@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiHelpers } from '@/lib/api';
+import { normalizeUser } from '@/lib/auth';
+import { UserRole } from '@/types';
 
 interface AdminUser {
   id: string;
@@ -45,11 +47,19 @@ export default function AdminUsersPage() {
       setLoading(true);
       setError(null);
       const params: any = { page };
-      if (selectedRole !== 'all') params.role = selectedRole.toUpperCase();
+      if (selectedRole !== 'all') params.role = selectedRole;
       if (searchQuery) params.search = searchQuery;
       const response = await apiHelpers.admin.getUsers(params);
       const data = response.data.data;
-      setUsers(data.data || data.users || []);
+      const rawUsers = data.data || data.users || [];
+      setUsers(rawUsers.map((u: Record<string, unknown>) => {
+        const normalized = normalizeUser(u)!;
+        return {
+          ...normalized,
+          status: u.is_active === false ? 'suspended' : 'active',
+          totalSessions: (u.totalSessions ?? u.total_sessions) as number | undefined,
+        };
+      }));
       setTotalPages(data.totalPages || 1);
       setTotal(data.total || 0);
     } catch (err: any) {
@@ -194,8 +204,8 @@ export default function AdminUsersPage() {
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${user.role === 'ADMIN' ? 'bg-red-500/20 text-red-400'
-                            : user.role === 'THERAPIST' ? 'bg-calm-500/20 text-calm-400'
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${user.role === UserRole.ADMIN ? 'bg-red-500/20 text-red-400'
+                            : user.role === UserRole.THERAPIST ? 'bg-calm-500/20 text-calm-400'
                               : 'bg-therapy-500/20 text-therapy-400'
                           }`}>
                           {user.role}
