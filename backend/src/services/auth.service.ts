@@ -51,6 +51,12 @@ export const register = async (data: RegisterData): Promise<{
   const existingUser = await User.findOne({ where: { email: data.email.toLowerCase() } });
   if (existingUser) throw new Error('User with this email already exists');
 
+  const roleInput = data.role ? String(data.role).toLowerCase() : UserRole.CLIENT;
+  const allowedRoles = [UserRole.CLIENT, UserRole.THERAPIST];
+  const role = allowedRoles.includes(roleInput as UserRole)
+    ? (roleInput as UserRole)
+    : UserRole.CLIENT;
+
   const user = await User.create({
     email: data.email.toLowerCase(),
     password_hash: data.password,
@@ -58,7 +64,7 @@ export const register = async (data: RegisterData): Promise<{
     last_name: data.lastName,
     date_of_birth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
     phone: data.phone,
-    role: data.role || UserRole.CLIENT,
+    role,
     auth_provider: AuthProvider.LOCAL,
     is_verified: false,
     is_active: true,

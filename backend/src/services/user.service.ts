@@ -21,14 +21,25 @@ export const updateProfile = async (
     updates: Partial<{
         first_name: string;
         last_name: string;
+        firstName: string;
+        lastName: string;
         phone: string;
         date_of_birth: Date;
+        dateOfBirth: Date | string;
         gender: string;
         profile_picture_url: string;
+        profilePictureUrl: string;
     }>
 ): Promise<IUser> => {
     const user = await User.findByPk(userId);
     if (!user) throw new Error('User not found');
+
+    const fieldMap: Record<string, string> = {
+        firstName: 'first_name',
+        lastName: 'last_name',
+        dateOfBirth: 'date_of_birth',
+        profilePictureUrl: 'profile_picture_url',
+    };
 
     const allowedFields = [
         'first_name', 'last_name', 'phone',
@@ -36,9 +47,11 @@ export const updateProfile = async (
     ] as const;
 
     const safeUpdates: Record<string, any> = {};
-    for (const field of allowedFields) {
-        if (updates[field] !== undefined) {
-            safeUpdates[field] = updates[field];
+    for (const [key, value] of Object.entries(updates)) {
+        if (value === undefined) continue;
+        const dbField = fieldMap[key] ?? key;
+        if (allowedFields.includes(dbField as typeof allowedFields[number])) {
+            safeUpdates[dbField] = value;
         }
     }
 

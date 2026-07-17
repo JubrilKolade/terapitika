@@ -73,17 +73,17 @@ router.get('/facebook/callback', AuthController.oauthCallback);
  * Protected routes (authentication required)
  */
 
-// Logout
-router.post('/logout', authenticate, AuthController.logout);
-
-// Refresh access token
+// Refresh access token (public — uses refresh token only)
 router.post(
   '/refresh',
-  authenticate,
+  authRateLimiter,
   sanitizeBody,
   validateRefreshToken,
   AuthController.refreshToken
 );
+
+// Logout
+router.post('/logout', authenticate, AuthController.logout);
 
 // Change password
 router.post(

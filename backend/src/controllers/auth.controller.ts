@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../types';
 import * as AuthService from '../services/auth.service';
+import { verifyRefreshToken } from '../config/jwt';
 import { sendSuccess, sendError } from '../utils/helpers';
 import { logAuditEvent } from '../utils/logger';
 import { asyncHandler } from '../middlewares/error.middleware';
@@ -39,10 +40,11 @@ export const logout = asyncHandler(async (req: AuthRequest, res: Response) => {
  * Refresh access token
  */
 export const refreshToken = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { refreshToken } = req.body;
-  const userId = req.user?.id;
-  if (!userId) return sendError(res, 'User ID required', 400);
-  const tokens = await AuthService.refreshToken(userId, refreshToken);
+  const { refreshToken: token } = req.body;
+  if (!token) return sendError(res, 'Refresh token required', 400);
+
+  const payload = verifyRefreshToken(token);
+  const tokens = await AuthService.refreshToken(payload.userId, token);
   return sendSuccess(res, tokens, 'Token refreshed');
 });
 
