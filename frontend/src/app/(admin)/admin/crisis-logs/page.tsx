@@ -1,11 +1,43 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { GlassCard } from '@/components/shared/GlassCard';
-import { AlertTriangle, Shield, Clock, User, MessageCircle, ExternalLink, ChevronRight } from 'lucide-react';
+import { AlertTriangle, Shield, Clock, User, MessageCircle, ExternalLink, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { apiHelpers } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 export default function AdminCrisisLogsPage() {
+    const [isLoading, setIsLoading] = useState(true);
+    const [data, setData] = useState<any>(null);
+
+    useEffect(() => {
+        const fetchCrisisLogs = async () => {
+            try {
+                const response = await apiHelpers.admin.getCrisisLogs();
+                setData(response.data.data);
+            } catch (error) {
+                console.error('Failed to fetch crisis logs:', error);
+                toast.error('Failed to load crisis logs');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchCrisisLogs();
+    }, []);
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <Loader2 className="w-8 h-8 animate-spin text-therapy-500" />
+            </div>
+        );
+    }
+
+    const { stats, alerts } = data || {};
+
     return (
         <div className="space-y-8">
             <PageHeader
@@ -24,7 +56,7 @@ export default function AdminCrisisLogsPage() {
                         </div>
                         <div>
                             <p className="text-sm text-gray-400">Active Alerts</p>
-                            <p className="text-2xl font-bold text-red-400">03</p>
+                            <p className="text-2xl font-bold text-red-400">{stats?.activeAlerts || '0'}</p>
                         </div>
                     </div>
                 </GlassCard>
@@ -35,7 +67,7 @@ export default function AdminCrisisLogsPage() {
                         </div>
                         <div>
                             <p className="text-sm text-gray-400">Pending Review</p>
-                            <p className="text-2xl font-bold text-yellow-400">12</p>
+                            <p className="text-2xl font-bold text-yellow-400">{stats?.pendingReview || '0'}</p>
                         </div>
                     </div>
                 </GlassCard>
@@ -46,7 +78,7 @@ export default function AdminCrisisLogsPage() {
                         </div>
                         <div>
                             <p className="text-sm text-gray-400">Resolved Today</p>
-                            <p className="text-2xl font-bold text-green-400">08</p>
+                            <p className="text-2xl font-bold text-green-400">{stats?.resolvedToday || '0'}</p>
                         </div>
                     </div>
                 </GlassCard>
@@ -72,42 +104,50 @@ export default function AdminCrisisLogsPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
-                            {alerts.map((alert) => (
-                                <tr key={alert.id} className="hover:bg-white/5 transition-colors">
-                                    <td className="px-4 py-4">
-                                        <span className={`px-2 py-1 rounded-md mb-2 text-[10px] font-bold uppercase tracking-wider ${alert.priority === 'Critical'
+                            {alerts?.length > 0 ? (
+                                alerts.map((alert: any) => (
+                                    <tr key={alert.id} className="hover:bg-white/5 transition-colors">
+                                        <td className="px-4 py-4">
+                                            <span className={`px-2 py-1 rounded-md mb-2 text-[10px] font-bold uppercase tracking-wider ${alert.priority === 'Critical'
                                                 ? 'bg-red-500 text-white'
                                                 : alert.priority === 'High'
                                                     ? 'bg-orange-500/20 text-orange-400'
                                                     : 'bg-yellow-500/20 text-yellow-400'
-                                            }`}>
-                                            {alert.priority}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-4">
-                                        <div className="flex items-center space-x-3">
-                                            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                                                <User className="w-4 h-4 text-gray-400" />
+                                                }`}>
+                                                {alert.priority}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <div className="flex items-center space-x-3">
+                                                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                                                    <User className="w-4 h-4 text-gray-400" />
+                                                </div>
+                                                <span className="font-medium">{alert.userName || alert.user}</span>
                                             </div>
-                                            <span className="font-medium">{alert.user}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-4">
-                                        <div className="flex items-center space-x-2 text-sm text-red-400">
-                                            <MessageCircle className="w-4 h-4" />
-                                            <span>{alert.trigger}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-4 text-sm text-gray-400">{alert.type}</td>
-                                    <td className="px-4 py-4 text-sm text-gray-400">{alert.time}</td>
-                                    <td className="px-4 py-4 text-right">
-                                        <button className="text-therapy-400 hover:text-therapy-300 font-medium text-sm flex items-center ml-auto transition-colors">
-                                            Investigate
-                                            <ChevronRight className="w-4 h-4 ml-1" />
-                                        </button>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <div className="flex items-center space-x-2 text-sm text-red-400">
+                                                <MessageCircle className="w-4 h-4" />
+                                                <span>{alert.trigger}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-4 text-sm text-gray-400">{alert.type}</td>
+                                        <td className="px-4 py-4 text-sm text-gray-400">{alert.time || new Date(alert.createdAt).toLocaleString()}</td>
+                                        <td className="px-4 py-4 text-right">
+                                            <button className="text-therapy-400 hover:text-therapy-300 font-medium text-sm flex items-center ml-auto transition-colors">
+                                                Investigate
+                                                <ChevronRight className="w-4 h-4 ml-1" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500 italic">
+                                        No active alerts found.
                                     </td>
                                 </tr>
-                            ))}
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -162,11 +202,3 @@ function ProtocolItem({ title, status, color }: { title: string; status: string;
         </div>
     );
 }
-
-const alerts = [
-    { id: '1', priority: 'Critical', user: 'Mark Sanders', trigger: 'Suicide keywords', type: 'AI Chat', time: '2 mins ago' },
-    { id: '2', priority: 'High', user: 'Anonym-423', trigger: 'Severe anxiety patterns', type: 'AI Chat', time: '12 mins ago' },
-    { id: '3', priority: 'High', user: 'Sarah Blake', trigger: 'Self-harm mentions', type: 'Session Audio', time: '45 mins ago' },
-    { id: '4', priority: 'Medium', user: 'John Doe', trigger: 'Repeated distressed phrases', type: 'AI Chat', time: '1 hour ago' },
-    { id: '5', priority: 'Medium', user: 'Lisa Ray', trigger: 'Escalated mood swings', type: 'Clinical Journal', time: '2 hours ago' },
-];

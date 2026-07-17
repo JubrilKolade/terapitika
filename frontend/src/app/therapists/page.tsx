@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Search,
@@ -21,15 +21,85 @@ import {
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
+import { apiHelpers } from '@/lib/api';
+import { Therapist } from '@/types';
+
+type UITherapist = {
+  id: string;
+  name: string;
+  title: string;
+  rating: number;
+  reviews: number;
+  experience: number;
+  specializations: string[];
+  languages: string[];
+  location: string;
+  rate: number;
+  nextAvailable: string;
+  sessionTypes: ('video' | 'chat')[];
+};
 
 export default function TherapistsPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [therapists, setTherapists] = useState<UITherapist[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedFilters, setSelectedFilters] = useState({
     specialization: [] as string[],
     availability: [] as string[],
     priceRange: [] as string[],
     language: [] as string[],
   });
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadTherapists = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const response = await apiHelpers.therapists.getAll();
+        const payload = (response as any)?.data;
+        const data: Therapist[] = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
+
+        if (!isMounted) return;
+
+        const mapped: UITherapist[] = data.map((t) => ({
+          id: t.id,
+          name: `${t.firstName} ${t.lastName}`,
+          title: t.licenses?.[0]?.type || 'Licensed Therapist',
+          rating: typeof t.rating === 'number' ? t.rating : 5,
+          reviews: typeof t.totalSessions === 'number' ? t.totalSessions : 0,
+          experience: typeof t.experience === 'number' ? t.experience : 1,
+          specializations: Array.isArray(t.specializations) ? t.specializations : [],
+          languages: Array.isArray(t.languages) ? t.languages : [],
+          location: t.timezone || 'Online',
+          rate: typeof t.hourlyRate === 'number' ? t.hourlyRate : 100,
+          nextAvailable: t.acceptingClients ? 'today' : 'soon',
+          sessionTypes: [
+            t.videoEnabled && 'video',
+            t.chatEnabled && 'chat',
+          ].filter(Boolean) as ('video' | 'chat')[],
+        }));
+
+        setTherapists(mapped);
+      } catch (e: any) {
+        if (!isMounted) return;
+        setError(e?.response?.data?.message || 'Failed to load therapists');
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadTherapists();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#0A0A0F] text-white">
@@ -59,7 +129,9 @@ export default function TherapistsPage() {
                 <h1 className="text-3xl font-bold mb-2">
                   Find Your <span className="bg-gradient-to-r from-therapy-400 to-calm-400 bg-clip-text text-transparent">Perfect Therapist</span>
                 </h1>
-                <p className="text-gray-400">Browse {therapists.length}+ licensed professionals</p>
+                <p className="text-gray-400">
+                  {isLoading ? 'Loading therapists...' : `Browse ${therapists.length}+ licensed professionals`}
+                </p>
               </div>
 
               {/* Search Bar */}
@@ -93,7 +165,9 @@ export default function TherapistsPage() {
 
             {/* View Toggle */}
             <div className="flex items-center justify-between mt-4">
-              <p className="text-sm text-gray-400">{therapists.length} therapists available</p>
+              <p className="text-sm text-gray-400">
+                {isLoading ? 'Loading therapists...' : `${therapists.length} therapists available`}
+              </p>
               <div className="flex items-center space-x-2 bg-white/5 border border-white/10 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('grid')}
@@ -118,6 +192,12 @@ export default function TherapistsPage() {
 
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {error && (
+            <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+              {error}
+            </div>
+          )}
+
           <div className={viewMode === 'grid' ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-6'}>
             {therapists.map((therapist, i) => (
               <motion.div
@@ -242,7 +322,6 @@ export default function TherapistsPage() {
     </div>
   );
 }
-
 const filterTags = [
   'Anxiety',
   'Depression',
@@ -251,91 +330,4 @@ const filterTags = [
   'LGBTQ+',
   'Available Today',
   'Under $100',
-];
-
-const therapists = [
-  {
-    id: '1',
-    name: 'Dr. Sarah Johnson',
-    title: 'Clinical Psychologist',
-    rating: 4.9,
-    reviews: 127,
-    experience: 12,
-    specializations: ['Anxiety', 'Depression', 'Trauma', 'PTSD'],
-    languages: ['English', 'Spanish'],
-    location: 'New York, NY',
-    rate: 150,
-    nextAvailable: 'today',
-    sessionTypes: ['video', 'chat'],
-  },
-  {
-    id: '2',
-    name: 'Dr. Michael Chen',
-    title: 'Licensed Therapist',
-    rating: 4.8,
-    reviews: 98,
-    experience: 8,
-    specializations: ['Relationships', 'Family Therapy', 'Communication'],
-    languages: ['English', 'Mandarin'],
-    location: 'San Francisco, CA',
-    rate: 120,
-    nextAvailable: 'tomorrow',
-    sessionTypes: ['video', 'chat'],
-  },
-  {
-    id: '3',
-    name: 'Dr. Emily Rodriguez',
-    title: 'Psychiatric Nurse',
-    rating: 5.0,
-    reviews: 156,
-    experience: 15,
-    specializations: ['Bipolar', 'ADHD', 'Medication Management'],
-    languages: ['English'],
-    location: 'Los Angeles, CA',
-    rate: 180,
-    nextAvailable: 'this week',
-    sessionTypes: ['video'],
-  },
-  {
-    id: '4',
-    name: 'Dr. James Wilson',
-    title: 'Marriage Counselor',
-    rating: 4.7,
-    reviews: 89,
-    experience: 10,
-    specializations: ['Marriage', 'Couples Therapy', 'Conflict Resolution'],
-    languages: ['English', 'French'],
-    location: 'Miami, FL',
-    rate: 140,
-    nextAvailable: 'today',
-    sessionTypes: ['video', 'chat'],
-  },
-  {
-    id: '5',
-    name: 'Dr. Lisa Park',
-    title: 'Child Psychologist',
-    rating: 4.9,
-    reviews: 143,
-    experience: 11,
-    specializations: ['Child Therapy', 'Adolescent Issues', 'Behavioral'],
-    languages: ['English', 'Korean'],
-    location: 'Seattle, WA',
-    rate: 130,
-    nextAvailable: 'tomorrow',
-    sessionTypes: ['video', 'chat'],
-  },
-  {
-    id: '6',
-    name: 'Dr. David Kumar',
-    title: 'Addiction Specialist',
-    rating: 4.8,
-    reviews: 112,
-    experience: 14,
-    specializations: ['Addiction', 'Substance Abuse', 'Recovery'],
-    languages: ['English', 'Hindi'],
-    location: 'Chicago, IL',
-    rate: 160,
-    nextAvailable: 'today',
-    sessionTypes: ['video', 'chat'],
-  },
 ];

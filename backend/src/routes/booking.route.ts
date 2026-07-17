@@ -9,6 +9,7 @@ const router = Router();
 router.post('/', authenticate, sanitizeBody, BookingController.createBooking);
 router.get('/available-slots', BookingController.getAvailableSlots);
 router.get('/my-bookings', authenticate, validatePaginationParams, BookingController.getUserBookings);
+router.get('/', authenticate, validatePaginationParams, BookingController.getUserBookings);
 router.get('/:id', authenticate, BookingController.getBookingById);
 router.post('/:id/cancel', authenticate, sanitizeBody, BookingController.cancelBooking);
 router.post('/:id/reschedule', authenticate, sanitizeBody, BookingController.rescheduleBooking);

@@ -1,17 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Brain, Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/authstore';
+import { getDashboardPath } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { loginUser, isLoadingAuth } = useAuthStore();
+  const { loginUser, isLoadingAuth, isAuthenticated, user } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -23,13 +24,19 @@ export default function LoginPage() {
     e.preventDefault();
 
     try {
-      await loginUser(formData.email, formData.password);
+      const loggedInUser = await loginUser(formData.email, formData.password);
       toast.success('Welcome back!');
-      router.push('/dashboard');
+      router.push(getDashboardPath(loggedInUser.role));
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Login failed');
     }
   };
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      router.push(getDashboardPath(user.role));
+    }
+  }, [isAuthenticated, user, router]);
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-[#0A0A0F] via-[#1a1a2e] to-[#0A0A0F]">
@@ -266,7 +273,7 @@ export default function LoginPage() {
 
           {/* Sign Up Link */}
           <p className="text-center mt-8 text-gray-400">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/register" className="text-therapy-400 hover:text-therapy-300 font-semibold transition-colors">
               Sign up
             </Link>

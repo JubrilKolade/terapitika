@@ -71,3 +71,13 @@ export const broadcast = asyncHandler(async (req: AuthRequest, res: Response) =>
     logAuditEvent(req.user?.id, 'admin_broadcast', 'notification', undefined);
     return sendSuccess(res, { count }, `Broadcast sent to ${count} users`);
 });
+export const getSettings = asyncHandler(async (_req: AuthRequest, res: Response) => {
+    const settings = await AdminService.getSettings();
+    return sendSuccess(res, settings);
+});
+
+export const updateSettings = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const settings = await AdminService.updateSettings(req.body);
+    logAuditEvent(req.user?.id, 'admin_update_settings', 'system_settings', undefined, req.body);
+    return sendSuccess(res, settings, 'System settings updated');
+});

@@ -1,20 +1,35 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Search, Filter, MessageSquare, Video, MoreHorizontal, UserPlus } from 'lucide-react';
+import { Users, Search, Filter, MessageSquare, Video, MoreHorizontal, UserPlus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Input } from '@/components/ui/input';
-
-const clients = [
-    { id: 1, name: 'Sarah Mitchell', status: 'Active', nextSession: 'Feb 17, 2:00 PM', totalSessions: 12, image: 'S' },
-    { id: 2, name: 'James Wilson', status: 'Active', nextSession: 'Feb 19, 10:00 AM', totalSessions: 4, image: 'J' },
-    { id: 3, name: 'Emily Chen', status: 'On Break', nextSession: 'TBD', totalSessions: 28, image: 'E' },
-    { id: 4, name: 'Michael Brown', status: 'Active', nextSession: 'Feb 21, 4:00 PM', totalSessions: 6, image: 'M' },
-];
+import { apiHelpers } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 export default function ClientsPage() {
+    const [isLoading, setIsLoading] = useState(true);
+    const [clients, setClients] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchClients = async () => {
+            try {
+                const response = await apiHelpers.therapistPortal.getClients();
+                setClients(response.data.data || []);
+            } catch (error) {
+                console.error('Failed to fetch clients:', error);
+                toast.error('Failed to load clients list');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchClients();
+    }, []);
+
     return (
         <DashboardLayout type="therapist">
             <div className="space-y-8">
@@ -43,51 +58,65 @@ export default function ClientsPage() {
                     </Button>
                 </div>
 
-                <div className="grid gap-4">
-                    {clients.map((client) => (
-                        <Card key={client.id} className="bg-white/5 border-white/10 backdrop-blur-xl hover:border-therapy-500/50 transition-all group overflow-hidden border-none cursor-pointer">
-                            <CardContent className="p-6 relative text-white border-white/10 border rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <div className="flex items-center space-x-4">
-                                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-therapy-400 to-calm-400 flex items-center justify-center text-xl font-bold">
-                                        {client.image}
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold text-white group-hover:text-therapy-400 transition-colors">{client.name}</h3>
-                                        <div className="flex items-center space-x-2 text-sm">
-                                            <span className={client.status === 'Active' ? 'text-green-400' : 'text-yellow-400'}>
-                                                {client.status}
-                                            </span>
-                                            <span className="text-gray-600">•</span>
-                                            <span className="text-gray-400">{client.totalSessions} total sessions</span>
+                {isLoading ? (
+                    <div className="flex items-center justify-center py-20">
+                        <Loader2 className="w-8 h-8 animate-spin text-therapy-500" />
+                    </div>
+                ) : (
+                    <div className="grid gap-4">
+                        {clients.length > 0 ? (
+                            clients.map((client) => (
+                                <Card key={client.id} className="bg-white/5 border-white/10 backdrop-blur-xl hover:border-therapy-500/50 transition-all group overflow-hidden border cursor-pointer">
+                                    <CardContent className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <div className="flex items-center space-x-4">
+                                            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-therapy-400 to-calm-400 flex items-center justify-center text-xl font-bold">
+                                                {(client.name || 'C').charAt(0)}
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xl font-bold text-white group-hover:text-therapy-400 transition-colors">
+                                                    {client.name}
+                                                </h3>
+                                                <div className="flex items-center space-x-2 text-sm">
+                                                    <span className={client.status === 'Active' ? 'text-green-400' : 'text-yellow-400'}>
+                                                        {client.status}
+                                                    </span>
+                                                    <span className="text-gray-600">•</span>
+                                                    <span className="text-gray-400">{client.totalSessions || 0} total sessions</span>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
 
-                                <div className="flex flex-row md:flex-col lg:flex-row items-center gap-8 md:gap-2 lg:gap-8 flex-1 justify-center">
-                                    <div className="flex flex-col">
-                                        <span className="text-xs text-gray-400 uppercase font-bold text-center md:text-left">Next Session</span>
-                                        <span className="text-white">{client.nextSession}</span>
-                                    </div>
-                                </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-xs text-gray-400 uppercase font-bold">Next Session</span>
+                                            <span className="text-white">{client.nextSession || 'Not scheduled'}</span>
+                                        </div>
 
-                                <div className="flex items-center space-x-2">
-                                    <Button variant="ghost" size="icon" className="hover:bg-white/10">
-                                        <MessageSquare className="w-4 h-4 text-therapy-400" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="hover:bg-white/10">
-                                        <Video className="w-4 h-4 text-calm-400" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="hover:bg-white/10">
-                                        <MoreHorizontal className="w-4 h-4 text-gray-400" />
-                                    </Button>
-                                    <Button className="bg-white/5 border border-white/10 hover:bg-white/10 text-white ml-2">
-                                        View Records
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
+                                        <div className="flex items-center space-x-2">
+                                            <Button variant="ghost" size="icon" className="hover:bg-white/10">
+                                                <MessageSquare className="w-4 h-4 text-therapy-400" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="hover:bg-white/10">
+                                                <Video className="w-4 h-4 text-calm-400" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="hover:bg-white/10">
+                                                <MoreHorizontal className="w-4 h-4 text-gray-400" />
+                                            </Button>
+                                            <Button className="bg-white/5 border border-white/10 hover:bg-white/10 text-white ml-2">
+                                                View Records
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))
+                        ) : (
+                            <div className="py-20 text-center bg-white/5 rounded-2xl border border-white/10 border-dashed">
+                                <Users className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                                <h3 className="text-lg font-semibold text-gray-400">No clients yet</h3>
+                                <p className="text-gray-500">Your patient list will grow as you host more sessions.</p>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </DashboardLayout>
     );

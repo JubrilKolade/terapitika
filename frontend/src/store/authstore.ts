@@ -1,11 +1,15 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import axios from 'axios';
 import { User, AuthState } from '@/types';
 import { api } from '@/lib/api';
+import { normalizeUser } from '@/lib/auth';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 interface AuthActions {
-  loginUser: (email: string, password: string) => Promise<void>;
-  register: (data: any) => Promise<void>;
+  loginUser: (email: string, password: string) => Promise<User>;
+  register: (data: Record<string, unknown>) => Promise<User>;
   logout: () => void;
   refreshAuthToken: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
@@ -13,51 +17,63 @@ interface AuthActions {
   verifyEmail: (token: string) => Promise<void>;
   resetPassword: (password: string, token: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
+  fetchCurrentUser: () => Promise<User | null>;
 }
 
 export const useAuthStore = create<AuthState & AuthActions>()(
   persist(
     (set, get) => ({
-      // Initial state
       user: null,
       accessToken: null,
       refreshToken: null,
       isAuthenticated: false,
       isLoadingAuth: false,
 
-      // Actions
       loginUser: async (email: string, password: string) => {
         set({ isLoadingAuth: true });
         try {
           const response = await api.post('/auth/login', { email, password });
           const { user, accessToken, refreshToken } = response.data.data;
+          const normalized = normalizeUser(user)!;
 
           set({
-            user,
+            user: normalized,
             accessToken,
             refreshToken,
             isAuthenticated: true,
             isLoadingAuth: false,
           });
+          return normalized;
         } catch (error) {
           set({ isLoadingAuth: false });
           throw error;
         }
       },
 
-      register: async (data: any) => {
+      register: async (data: Record<string, unknown>) => {
         set({ isLoadingAuth: true });
         try {
-          const response = await api.post('/auth/register', data);
+          const payload = {
+            email: data.email,
+            password: data.password,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            role: data.role,
+            phone: data.phone,
+            dateOfBirth: data.dateOfBirth,
+          };
+          const response = await api.post('/auth/register', payload);
           const { user, accessToken, refreshToken } = response.data.data;
+          const normalized = normalizeUser(user)!;
 
           set({
-            user,
+            user: normalized,
             accessToken,
             refreshToken,
             isAuthenticated: true,
             isLoadingAuth: false,
           });
+          return normalized;
         } catch (error) {
           set({ isLoadingAuth: false });
           throw error;
@@ -65,9 +81,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       },
 
       logout: () => {
-        // Call logout API endpoint
         api.post('/auth/logout').catch(console.error);
-
         set({
           user: null,
           accessToken: null,
@@ -78,20 +92,25 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
       refreshAuthToken: async () => {
         const { refreshToken } = get();
-        if (!refreshToken) return;
+        if (!refreshToken) throw new Error('No refresh token');
 
+        const response = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
+        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data.data;
+
+        set({
+          accessToken: newAccessToken,
+          refreshToken: newRefreshToken,
+        });
+      },
+
+      fetchCurrentUser: async () => {
         try {
-          const response = await api.post('/auth/refresh', { refreshToken });
-          const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data.data;
-
-          set({
-            accessToken: newAccessToken,
-            refreshToken: newRefreshToken,
-          });
-        } catch (error) {
-          // If refresh fails, logout
-          get().logout();
-          throw error;
+          const response = await api.get('/users/me');
+          const normalized = normalizeUser(response.data.data);
+          if (normalized) set({ user: normalized, isAuthenticated: true });
+          return normalized;
+        } catch {
+          return null;
         }
       },
 
@@ -119,7 +138,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       resetPassword: async (password: string, token: string) => {
         set({ isLoadingAuth: true });
         try {
-          await api.post(`/auth/reset-password/${token}`, { password });
+          await api.post('/auth/reset-password', { token, newPassword: password });
           set({ isLoadingAuth: false });
         } catch (error) {
           set({ isLoadingAuth: false });
@@ -130,16 +149,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       verifyEmail: async (token: string) => {
         set({ isLoadingAuth: true });
         try {
-          const response = await api.post(`/auth/verify-email/${token}`);
-          const { user, accessToken, refreshToken } = response.data.data;
-
-          set({
-            user,
-            accessToken,
-            refreshToken,
-            isAuthenticated: true,
-            isLoadingAuth: false,
-          });
+          await api.post('/auth/verify-email', { token });
+          set({ isLoadingAuth: false });
         } catch (error) {
           set({ isLoadingAuth: false });
           throw error;
@@ -155,6 +166,12 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state?.user) {
+          const normalized = normalizeUser(state.user as unknown as Record<string, unknown>);
+          if (normalized) state.user = normalized;
+        }
+      },
     }
   )
 );

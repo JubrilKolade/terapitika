@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,61 +13,87 @@ import {
   Filter,
   Trash2,
   Clock,
+  Loader2,
 } from 'lucide-react';
+import { apiHelpers } from '@/lib/api';
 
 type NotificationCategory = 'all' | 'sessions' | 'billing' | 'product';
 
-const initialNotifications = [
-  {
-    id: '1',
-    title: 'Upcoming session with Dr. Rivera',
-    description: 'Your session is scheduled for tomorrow at 3:00 PM.',
-    category: 'sessions' as NotificationCategory,
-    timeAgo: '2 hours ago',
-    unread: true,
-  },
-  {
-    id: '2',
-    title: 'Payment receipt available',
-    description: 'Your receipt for the last session has been generated.',
-    category: 'billing' as NotificationCategory,
-    timeAgo: '1 day ago',
-    unread: false,
-  },
-  {
-    id: '3',
-    title: 'New coping strategies unlocked',
-    description: 'Based on your recent mood logs, we have new suggestions.',
-    category: 'product' as NotificationCategory,
-    timeAgo: '3 days ago',
-    unread: true,
-  },
-  {
-    id: '4',
-    title: 'Session summary ready',
-    description: 'Your AI summary from the last conversation is now available.',
-    category: 'sessions' as NotificationCategory,
-    timeAgo: '5 days ago',
-    unread: false,
-  },
-];
+interface ApiNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  read: boolean;
+  createdAt: string;
+}
+
+const mapCategory = (type: string): NotificationCategory => {
+  if (type.includes('SESSION') || type.includes('THERAPIST')) return 'sessions';
+  if (type.includes('PAYMENT') || type.includes('BILLING')) return 'billing';
+  return 'product';
+};
+
+const timeAgo = (dateStr: string) => {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins} minutes ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days > 1 ? 's' : ''} ago`;
+};
 
 const NotificationsPage = () => {
   const [category, setCategory] = useState<NotificationCategory>('all');
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const [notifications, setNotifications] = useState<ApiNotification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        setLoading(true);
+        const response = await apiHelpers.notifications.getAll();
+        const data = response.data.data;
+        setNotifications(data?.data || data || []);
+      } catch {
+        // Fail silently
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchNotifications();
+  }, []);
 
   const filtered = notifications.filter((n) =>
-    category === 'all' ? true : n.category === category
+    category === 'all' ? true : mapCategory(n.type) === category
   );
 
-  const unreadCount = notifications.filter((n) => n.unread).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+  const markAllAsRead = async () => {
+    try {
+      setActionLoading(true);
+      await apiHelpers.notifications.markAllAsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    } catch {
+      // Fail silently
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const clearAll = () => {
-    setNotifications([]);
+  const clearAll = async () => {
+    try {
+      setActionLoading(true);
+      await Promise.all(notifications.map((n) => apiHelpers.notifications.delete(n.id)));
+      setNotifications([]);
+    } catch {
+      // Fail silently
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   return (
@@ -85,14 +111,16 @@ const NotificationsPage = () => {
               variant="outline"
               className="border-white/10 text-white"
               onClick={markAllAsRead}
+              disabled={actionLoading}
             >
-              <Check className="w-4 h-4 mr-2" />
+              {actionLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
               Mark all as read
             </Button>
             <Button
               variant="ghost"
               className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
               onClick={clearAll}
+              disabled={actionLoading}
             >
               <Trash2 className="w-4 h-4 mr-2" />
               Clear all
@@ -145,7 +173,11 @@ const NotificationsPage = () => {
             </div>
           </CardHeader>
           <CardContent>
-            {filtered.length === 0 ? (
+            {loading ? (
+              <div className="py-12 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-therapy-400" />
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
                 <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-2">
                   <Clock className="w-5 h-5 text-gray-400" />
@@ -156,46 +188,48 @@ const NotificationsPage = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {filtered.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className={`flex items-start justify-between p-4 rounded-xl border transition-all cursor-pointer ${
-                      notification.unread
-                        ? 'bg-white/10 border-therapy-500/40'
-                        : 'bg-white/5 border-white/10 hover:border-therapy-500/40'
-                    }`}
-                  >
-                    <div className="flex items-start space-x-3">
-                      <div className="mt-1">
-                        {notification.category === 'sessions' && (
-                          <Calendar className="w-4 h-4 text-therapy-400" />
-                        )}
-                        {notification.category === 'billing' && (
-                          <AlertTriangle className="w-4 h-4 text-yellow-400" />
-                        )}
-                        {notification.category === 'product' && (
-                          <MessageSquare className="w-4 h-4 text-calm-400" />
-                        )}
-                      </div>
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <h3 className="font-semibold text-white">
-                            {notification.title}
-                          </h3>
-                          {notification.unread && (
-                            <span className="w-2 h-2 rounded-full bg-therapy-400" />
+                {filtered.map((notification) => {
+                  const cat = mapCategory(notification.type);
+                  return (
+                    <div
+                      key={notification.id}
+                      className={`flex items-start justify-between p-4 rounded-xl border transition-all cursor-pointer ${!notification.read
+                          ? 'bg-white/10 border-therapy-500/40'
+                          : 'bg-white/5 border-white/10 hover:border-therapy-500/40'
+                        }`}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <div className="mt-1">
+                          {cat === 'sessions' && (
+                            <Calendar className="w-4 h-4 text-therapy-400" />
+                          )}
+                          {cat === 'billing' && (
+                            <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                          )}
+                          {cat === 'product' && (
+                            <MessageSquare className="w-4 h-4 text-calm-400" />
                           )}
                         </div>
-                        <p className="text-sm text-gray-400 mt-1">
-                          {notification.description}
-                        </p>
-                        <div className="text-xs text-gray-500 mt-2">
-                          {notification.timeAgo}
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <h3 className="font-semibold text-white">
+                              {notification.title}
+                            </h3>
+                            {!notification.read && (
+                              <span className="w-2 h-2 rounded-full bg-therapy-400" />
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-400 mt-1">
+                            {notification.message}
+                          </p>
+                          <div className="text-xs text-gray-500 mt-2">
+                            {timeAgo(notification.createdAt)}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
@@ -206,4 +240,3 @@ const NotificationsPage = () => {
 };
 
 export default NotificationsPage;
-

@@ -4,7 +4,13 @@ import { PaymentStatus, IPayment } from '../types';
 import config from '../config/environment';
 import logger from '../utils/logger';
 
-const stripe = new Stripe(config.stripe?.secretKey || '', { apiVersion: '2025-01-27.acacia' as any });
+let stripe: Stripe;
+
+if (config.stripe?.secretKey) {
+    stripe = new Stripe(config.stripe.secretKey, { apiVersion: '2025-01-27.acacia' as any });
+} else {
+    logger.warn('Stripe API key is missing. Payment functionality will be disabled.');
+}
 
 export const createPaymentIntent = async (data: {
     userId: string;
@@ -117,4 +123,81 @@ export const handleWebhook = async (event: Stripe.Event): Promise<void> => {
         default:
             logger.debug(`Unhandled webhook event: ${event.type}`);
     }
+};
+/**
+ * Get or create Stripe customer for user
+ */
+export const getOrCreateCustomer = async (userId: string): Promise<string> => {
+    const user = await User.findByPk(userId);
+    if (!user) throw new Error('User not found');
+
+    if (user.stripe_customer_id) return user.stripe_customer_id;
+
+    const customer = await stripe.customers.create({
+        email: user.email,
+        metadata: { userId: user.id },
+    });
+
+    user.stripe_customer_id = customer.id;
+    await user.save();
+
+    return customer.id;
+};
+
+/**
+ * Get payment methods for a user
+ */
+export const getPaymentMethods = async (userId: string) => {
+    const customerId = await getOrCreateCustomer(userId);
+    const paymentMethods = await stripe.paymentMethods.list({
+        customer: customerId,
+        type: 'card',
+    });
+    return paymentMethods.data;
+};
+
+/**
+ * Attach a payment method to a user
+ */
+export const addPaymentMethod = async (userId: string, paymentMethodId: string) => {
+    const customerId = await getOrCreateCustomer(userId);
+    const paymentMethod = await stripe.paymentMethods.attach(paymentMethodId, {
+        customer: customerId,
+    });
+    return paymentMethod;
+};
+
+/**
+ * Remove a payment method
+ */
+export const removePaymentMethod = async (paymentMethodId: string) => {
+    const paymentMethod = await stripe.paymentMethods.detach(paymentMethodId);
+    return paymentMethod;
+};
+
+/**
+ * Set default payment method for a user
+ */
+export const setDefaultPaymentMethod = async (userId: string, paymentMethodId: string) => {
+    const customerId = await getOrCreateCustomer(userId);
+    await stripe.customers.update(customerId, {
+        invoice_settings: {
+            default_payment_method: paymentMethodId,
+        },
+    });
+    return { success: true };
+};
+
+export default {
+    createPaymentIntent,
+    confirmPayment,
+    processRefund,
+    getPaymentHistory,
+    getPaymentById,
+    handleWebhook,
+    getOrCreateCustomer,
+    getPaymentMethods,
+    addPaymentMethod,
+    removePaymentMethod,
+    setDefaultPaymentMethod,
 };

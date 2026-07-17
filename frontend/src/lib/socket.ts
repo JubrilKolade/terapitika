@@ -1,12 +1,14 @@
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '@/store/authstore';
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:5000';
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:5000';
 
 class SocketService {
   private socket: Socket | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
+  private seenMessageIds: Set<string> = new Set();
+  private seenMessageIdOrder: string[] = [];
 
   connect(): Socket {
     if (this.socket?.connected) {
@@ -79,15 +81,25 @@ class SocketService {
 
   // Chat events
   joinChatRoom(sessionId: string): void {
-    this.socket?.emit('chat:join', { sessionId });
+    this.socket?.emit('chat:join', sessionId);
   }
 
   leaveChatRoom(sessionId: string): void {
-    this.socket?.emit('chat:leave', { sessionId });
+    this.socket?.emit('chat:leave', sessionId);
   }
 
   sendMessage(sessionId: string, message: any): void {
-    this.socket?.emit('chat:message', { sessionId, message });
+    const content =
+      typeof message === 'string'
+        ? message
+        : typeof message?.content === 'string'
+          ? message.content
+          : '';
+
+    const contentType = message?.contentType;
+    const fileUrl = message?.fileUrl;
+
+    this.socket?.emit('chat:message', { sessionId, content, contentType, fileUrl });
   }
 
   startTyping(sessionId: string): void {
@@ -99,7 +111,23 @@ class SocketService {
   }
 
   onNewMessage(callback: (data: any) => void): void {
-    this.socket?.on('chat:message:new', callback);
+    const handler = (data: any) => {
+      const id = typeof data?.id === 'string' ? data.id : null;
+      if (id) {
+        if (this.seenMessageIds.has(id)) return;
+        this.seenMessageIds.add(id);
+        this.seenMessageIdOrder.push(id);
+        if (this.seenMessageIdOrder.length > 200) {
+          const oldest = this.seenMessageIdOrder.shift();
+          if (oldest) this.seenMessageIds.delete(oldest);
+        }
+      }
+      callback(data);
+    };
+
+    // Support both names; server may emit one or both.
+    this.socket?.on('chat:message:new', handler);
+    this.socket?.on('chat:message', handler);
   }
 
   onTypingStart(callback: (data: any) => void): void {

@@ -318,8 +318,8 @@ export default function GuestChatPage() {
                 <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-therapy-500 to-calm-500 rounded-full flex items-center justify-center">
                   <Clock className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold mb-2">
-                  You've reached your message limit
+                  <h3 className="text-2xl font-bold mb-2">
+                  You&apos;ve reached your message limit
                 </h3>
                 <p className="text-gray-400 mb-6 max-w-md mx-auto">
                   Create a free account to continue chatting with our AI and access licensed therapists

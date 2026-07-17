@@ -18,5 +18,7 @@ router.patch('/therapists/:id/verify', AdminController.verifyTherapist);
 router.get('/crisis-logs', AdminController.getCrisisLogs);
 router.get('/audit-logs', AdminController.getAuditLogs);
 router.post('/broadcast', AdminController.broadcast);
+router.get('/settings', AdminController.getSettings);
+router.patch('/settings', AdminController.updateSettings);
 
 export default router;

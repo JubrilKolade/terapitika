@@ -1,16 +1,13 @@
 import express, { Application, Request, Response } from 'express';
-import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import config from './config/environment';
-import sequelize, { testConnection } from './config/database';
-import redis from './config/redis';
-import { initializeModels, syncModels } from './models';
-import { initializeWebSocket } from './websocket/WebSocketManager';
-import logger, { stream } from './utils/logger';
+import { stream } from './utils/logger';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware';
 import { apiRateLimiter } from './middlewares/rateLimit.middleware';
 
@@ -29,6 +26,7 @@ import reviewRoutes from './routes/review.route';
 import supportRoutes from './routes/support.route';
 import notificationRoutes from './routes/notification.route';
 import adminRoutes from './routes/admin.route';
+import analyticsRoutes from './routes/analytics.route';
 
 /**
  * Initialize all middlewares
@@ -86,6 +84,30 @@ const initializeRoutes = (app: Application): void => {
     });
   });
 
+  // Minimal OpenAPI spec endpoint (placeholder until fully documented)
+  app.get('/api/docs', async (_req: Request, res: Response) => {
+    const candidates = [
+      // when running from repo root
+      path.join(process.cwd(), 'docs', 'api', 'openapi.yaml'),
+      // when running from backend/ as CWD
+      path.join(process.cwd(), '..', 'docs', 'api', 'openapi.yaml'),
+    ];
+
+    for (const p of candidates) {
+      try {
+        const spec = await fs.readFile(p, 'utf8');
+        res.type('text/yaml').send(spec);
+        return;
+      } catch {
+        // try next path
+      }
+    }
+
+    res.status(501).json({
+      message: 'OpenAPI spec not available yet.',
+    });
+  });
+
   // API routes
   app.use('/api/auth', authRoutes);
   app.use('/api/ai', aiRoutes);
@@ -101,6 +123,7 @@ const initializeRoutes = (app: Application): void => {
   app.use('/api/support', supportRoutes);
   app.use('/api/notifications', notificationRoutes);
   app.use('/api/admin', adminRoutes);
+  app.use('/api/analytics', analyticsRoutes);
 
   // Root endpoint
   app.get('/', (req: Request, res: Response) => {
@@ -128,78 +151,5 @@ export const createApp = (): Application => {
   initializeRoutes(app);
   return app;
 };
-
-/**
- * Start the server
- */
-const startServer = async (): Promise<void> => {
-  try {
-    console.log('🚀 Starting Terapitika API Server (Functional)...\n');
-
-    // Database connection
-    console.log('📊 Connecting to database...');
-    await testConnection();
-    initializeModels();
-
-    if (config.env === 'development') {
-      console.log('🔄 Synchronizing database models...');
-      await syncModels(false);
-    }
-
-    // Redis connection
-    console.log('💾 Testing Redis connection...');
-    await redis.ping();
-    console.log('✓ Redis connection successful\n');
-
-    const app = createApp();
-    const httpServer = createServer(app);
-
-    // Initialize WebSocket
-    console.log('🔌 Initializing WebSocket server...');
-    const wsManager = initializeWebSocket(httpServer);
-    (app as any).wsManager = wsManager;
-    console.log('✓ WebSocket server initialized\n');
-
-    httpServer.listen(config.port, () => {
-      console.log(`✓ HTTP server is running on port ${config.port}`);
-      console.log(`✓ API URL: ${config.apiUrl}`);
-    });
-
-  } catch (error) {
-    logger.error('Failed to start server:', error);
-    console.error('❌ Failed to start server:', error);
-    process.exit(1);
-  }
-};
-
-// Graceful shutdown
-const gracefulShutdown = async (signal: string): Promise<void> => {
-  console.log(`\n${signal} received. Starting graceful shutdown...`);
-  try {
-    await sequelize.close();
-    redis.disconnect();
-    console.log('✓ Shutdown completed');
-    process.exit(0);
-  } catch (error) {
-    console.error('❌ Shutdown error:', error);
-    process.exit(1);
-  }
-};
-
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-process.on('uncaughtException', (error: Error) => {
-  logger.error('UNCAUGHT EXCEPTION!', error);
-  process.exit(1);
-});
-process.on('unhandledRejection', (reason: any) => {
-  logger.error('UNHANDLED REJECTION!', reason);
-  process.exit(1);
-});
-
-// Start the server if this file is run directly
-if (require.main === module) {
-  startServer();
-}
 
 export default createApp;

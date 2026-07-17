@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatCard } from '@/components/shared/StatCard';
 import { GlassCard } from '@/components/shared/GlassCard';
@@ -15,11 +15,132 @@ import {
   MessageSquare,
   Shield,
   Clock,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { apiHelpers } from '@/lib/api';
+
+interface DashboardAnalytics {
+  totalUsers: number;
+  activeTherapists: number;
+  monthlyRevenue: number;
+  crisisAlerts: number;
+  userGrowth: string;
+  therapistGrowth: string;
+  revenueGrowth: string;
+  crisisChange: string;
+  recentActivity: Array<{
+    type: string;
+    title: string;
+    description: string;
+    time: string;
+  }>;
+  systemHealth: Array<{
+    name: string;
+    status: string;
+    uptime: string;
+    responseTime: string;
+  }>;
+}
+
+const activityIcons: Record<string, any> = {
+  user_registration: Users,
+  therapist_verified: UserCheck,
+  crisis_resolved: AlertTriangle,
+  payment_received: DollarSign,
+  default: Activity,
+};
+
+const activityColors: Record<string, string> = {
+  user_registration: 'from-therapy-500 to-therapy-600',
+  therapist_verified: 'from-calm-500 to-calm-600',
+  crisis_resolved: 'from-green-500 to-green-600',
+  payment_received: 'from-blue-500 to-blue-600',
+  default: 'from-gray-500 to-gray-600',
+};
 
 export default function AdminDashboard() {
+  const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        setLoading(true);
+        const response = await apiHelpers.admin.getDashboard();
+        setAnalytics(response.data.data);
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Failed to load dashboard');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboard();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-therapy-400" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <AlertTriangle className="w-12 h-12 text-red-400" />
+        <p className="text-gray-400">{error}</p>
+        <Button onClick={() => window.location.reload()}>Retry</Button>
+      </div>
+    );
+  }
+
+  const stats = [
+    {
+      icon: Users,
+      label: 'Total Users',
+      value: analytics?.totalUsers?.toLocaleString() || '0',
+      change: analytics?.userGrowth || '+0%',
+      trend: 'up' as const,
+      gradient: 'from-therapy-500 to-therapy-600',
+    },
+    {
+      icon: UserCheck,
+      label: 'Active Therapists',
+      value: analytics?.activeTherapists?.toLocaleString() || '0',
+      change: analytics?.therapistGrowth || '+0',
+      trend: 'up' as const,
+      gradient: 'from-calm-500 to-calm-600',
+    },
+    {
+      icon: DollarSign,
+      label: 'Monthly Revenue',
+      value: `$${(analytics?.monthlyRevenue || 0).toLocaleString()}`,
+      change: analytics?.revenueGrowth || '+0%',
+      trend: 'up' as const,
+      gradient: 'from-green-500 to-green-600',
+    },
+    {
+      icon: AlertTriangle,
+      label: 'Crisis Alerts',
+      value: String(analytics?.crisisAlerts || 0),
+      change: analytics?.crisisChange || '0',
+      trend: 'down' as const,
+      gradient: 'from-red-500 to-red-600',
+    },
+  ];
+
+  const recentActivity = (analytics?.recentActivity || []).map((a) => ({
+    ...a,
+    icon: activityIcons[a.type] || activityIcons.default,
+    color: activityColors[a.type] || activityColors.default,
+  }));
+
+  const systemHealth = analytics?.systemHealth || [];
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -31,38 +152,9 @@ export default function AdminDashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          icon={Users}
-          label="Total Users"
-          value="12,458"
-          change="+8.2%"
-          trend="up"
-          gradient="from-therapy-500 to-therapy-600"
-        />
-        <StatCard
-          icon={UserCheck}
-          label="Active Therapists"
-          value="342"
-          change="+12"
-          trend="up"
-          gradient="from-calm-500 to-calm-600"
-        />
-        <StatCard
-          icon={DollarSign}
-          label="Monthly Revenue"
-          value="$284,590"
-          change="+15.3%"
-          trend="up"
-          gradient="from-green-500 to-green-600"
-        />
-        <StatCard
-          icon={AlertTriangle}
-          label="Crisis Alerts"
-          value="3"
-          change="-2"
-          trend="down"
-          gradient="from-red-500 to-red-600"
-        />
+        {stats.map((stat, i) => (
+          <StatCard key={i} {...stat} />
+        ))}
       </div>
 
       {/* Main Grid */}
@@ -77,18 +169,22 @@ export default function AdminDashboard() {
             <Button size="sm" variant="ghost">View All</Button>
           </div>
           <div className="space-y-4">
-            {recentActivity.map((activity, i) => (
-              <div key={i} className="flex items-start space-x-4 p-4 rounded-xl bg-white/5 border border-white/10">
-                <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${activity.color} flex items-center justify-center flex-shrink-0`}>
-                  <activity.icon className="w-5 h-5 text-white" />
+            {recentActivity.length === 0 ? (
+              <p className="text-gray-400 text-center py-8">No recent activity</p>
+            ) : (
+              recentActivity.map((activity, i) => (
+                <div key={i} className="flex items-start space-x-4 p-4 rounded-xl bg-white/5 border border-white/10">
+                  <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${activity.color} flex items-center justify-center flex-shrink-0`}>
+                    <activity.icon className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{activity.title}</p>
+                    <p className="text-xs text-gray-400">{activity.description}</p>
+                    <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{activity.title}</p>
-                  <p className="text-xs text-gray-400">{activity.description}</p>
-                  <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </GlassCard>
 
@@ -143,37 +239,6 @@ export default function AdminDashboard() {
   );
 }
 
-const recentActivity = [
-  {
-    icon: Users,
-    title: 'New User Registration',
-    description: 'Sarah Johnson signed up as a client',
-    time: '2 minutes ago',
-    color: 'from-therapy-500 to-therapy-600',
-  },
-  {
-    icon: UserCheck,
-    title: 'Therapist Verified',
-    description: 'Dr. Michael Chen completed verification',
-    time: '15 minutes ago',
-    color: 'from-calm-500 to-calm-600',
-  },
-  {
-    icon: AlertTriangle,
-    title: 'Crisis Alert Resolved',
-    description: 'Alert #1234 marked as resolved',
-    time: '1 hour ago',
-    color: 'from-green-500 to-green-600',
-  },
-  {
-    icon: DollarSign,
-    title: 'Payment Received',
-    description: 'Session payment of $150 processed',
-    time: '2 hours ago',
-    color: 'from-blue-500 to-blue-600',
-  },
-];
-
 const quickActions = [
   { icon: Users, label: 'Manage Users', href: '/admin/users' },
   { icon: UserCheck, label: 'Verify Therapists', href: '/admin/therapists' },
@@ -181,25 +246,4 @@ const quickActions = [
   { icon: Calendar, label: 'View Sessions', href: '/admin/sessions' },
   { icon: DollarSign, label: 'Payment Reports', href: '/admin/payments' },
   { icon: MessageSquare, label: 'Support Tickets', href: '/admin/support' },
-];
-
-const systemHealth = [
-  {
-    name: 'API Server',
-    status: 'healthy',
-    uptime: '99.98%',
-    responseTime: '45ms',
-  },
-  {
-    name: 'Database',
-    status: 'healthy',
-    uptime: '99.99%',
-    responseTime: '12ms',
-  },
-  {
-    name: 'WebSocket',
-    status: 'warning',
-    uptime: '98.5%',
-    responseTime: '150ms',
-  },
 ];

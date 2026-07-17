@@ -7,7 +7,7 @@ export function FAQ() {
                 <div className="text-center space-y-4">
                     <h2 className="text-4xl md:text-5xl font-display font-bold">
                         Got questions? <br />
-                        <span className="text-therapy-400">we've got answers</span>
+                        <span className="text-therapy-400">we&apos;ve got answers</span>
                     </h2>
                     <p className="text-gray-400 text-lg">
                         Everything you need to know about Terapitika and our AI-powered wellness approach.

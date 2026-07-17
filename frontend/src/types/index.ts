@@ -18,10 +18,10 @@ export interface User {
 }
 
 export enum UserRole {
-  CLIENT = 'CLIENT',
-  THERAPIST = 'THERAPIST',
-  ADMIN = 'ADMIN',
-  GUEST = 'GUEST',
+  CLIENT = 'client',
+  THERAPIST = 'therapist',
+  ADMIN = 'admin',
+  GUEST = 'guest',
 }
 
 export interface AuthState {

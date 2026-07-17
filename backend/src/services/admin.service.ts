@@ -128,3 +128,27 @@ export const broadcastNotification = async (title: string, message: string, targ
     logger.info(`Broadcast sent to ${users.length} users`);
     return users.length;
 };
+/**
+ * Get system settings (admin)
+ */
+export const getSettings = async (): Promise<any> => {
+    const { SystemSetting } = require('../models');
+    const settings = await SystemSetting.findAll();
+    return settings.reduce((acc: any, curr: any) => {
+        acc[curr.key] = curr.value;
+        return acc;
+    }, {});
+};
+
+/**
+ * Update system settings (admin)
+ */
+export const updateSettings = async (updates: Record<string, any>): Promise<any> => {
+    const { SystemSetting } = require('../models');
+
+    for (const [key, value] of Object.entries(updates)) {
+        await SystemSetting.upsert({ key, value });
+    }
+
+    return getSettings();
+};

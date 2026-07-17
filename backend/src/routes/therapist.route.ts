@@ -8,6 +8,7 @@ const router = Router();
 // Public routes
 router.get('/search', validatePaginationParams, TherapistController.search);
 router.get('/:id', TherapistController.getById);
+router.get('/:id/availability', TherapistController.getAvailability);
 
 // Therapist routes (requires therapist role)
 router.post('/register', authenticate, sanitizeBody, TherapistController.register);
@@ -16,6 +17,9 @@ router.patch('/me/profile', authenticate, requireTherapist, sanitizeBody, Therap
 router.get('/me/stats', authenticate, requireTherapist, TherapistController.getStats);
 router.patch('/me/availability', authenticate, requireTherapist, sanitizeBody, TherapistController.updateAvailability);
 router.post('/me/documents', authenticate, requireTherapist, sanitizeBody, TherapistController.uploadDocuments);
+router.get('/me/clients', authenticate, requireTherapist, validatePaginationParams, TherapistController.getClients);
+router.get('/me/earnings', authenticate, requireTherapist, TherapistController.getEarnings);
+router.get('/me/settings', authenticate, requireTherapist, TherapistController.getProfile);
 
 // Admin routes
 router.get('/pending/verifications', authenticate, requireAdmin, validatePaginationParams, TherapistController.getPendingVerifications);

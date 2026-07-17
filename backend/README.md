@@ -56,25 +56,53 @@ npm run db:seed      # Seed database with test data
 ### Health Check
 ```
 GET /health          # Server health status
-GET /                # API information
+GET /api             # API information
 ```
 
 ### Authentication (`/api/auth`)
 ```
-POST /register               # Register new user
-POST /login                  # Login with email/password
-POST /logout                 # Logout (requires auth)
-POST /refresh                # Refresh access token (requires auth)
-POST /forgot-password        # Request password reset
-POST /reset-password         # Reset password with token
-POST /change-password        # Change password (requires auth)
-POST /verify-email           # Verify email with token
-POST /send-verification      # Send verification email (requires auth)
-GET  /me                     # Get current user (requires auth)
-GET  /status                 # Check auth status
-GET  /google/callback        # Google OAuth callback
-GET  /facebook/callback      # Facebook OAuth callback
+POST /api/auth/register               # Register new user
+POST /api/auth/login                  # Login with email/password
+POST /api/auth/logout                 # Logout (requires auth)
+POST /api/auth/refresh                # Refresh access token (requires auth)
+POST /api/auth/forgot-password        # Request password reset
+POST /api/auth/reset-password         # Reset password with token
+POST /api/auth/change-password        # Change password (requires auth)
+POST /api/auth/verify-email           # Verify email with token
+POST /api/auth/send-verification      # Send verification email (requires auth)
+GET  /api/auth/me                     # Get current user (requires auth)
+GET  /api/auth/status                 # Check auth status
 ```
+
+### Users (`/api/users`)
+```
+GET    /api/users/me                  # Get current user
+PATCH  /api/users/me                  # Update current user
+DELETE /api/users/me                  # Delete user
+```
+
+### Therapists (`/api/therapists`)
+```
+GET    /api/therapists                # List therapists
+GET    /api/therapists/:id            # Get therapist details
+PATCH  /api/therapists/me             # Update therapist profile
+```
+
+### Sessions & Bookings
+```
+POST   /api/bookings                  # Create booking
+GET    /api/bookings/:id              # Get booking details
+POST   /api/sessions/ai               # Start AI session
+GET    /api/sessions/:id              # Get session details
+```
+
+### New Modules
+- **Analytics**: `/api/analytics` - Platform and user analytics.
+- **Reviews**: `/api/reviews` - Therapist reviews and ratings.
+- **Subscriptions**: `/api/subscriptions` - User plans and billing.
+- **Notifications**: `/api/notifications` - User alerts and updates.
+- **Support**: `/api/support` - Ticketing and support system.
+
 
 ## 🔐 Authentication
 
@@ -168,34 +196,14 @@ ENCRYPTION_KEY=your-32-byte-encryption-key
 ```
 src/
 ├── config/          # Configuration files
-│   ├── database.ts
-│   ├── redis.ts
-│   ├── environment.ts
-│   └── jwt.ts
-├── models/          # Database models
-│   ├── user.model.ts
-│   ├── therapist.model.ts
-│   ├── session.model.ts
-│   ├── message.model.ts
-│   └── index.ts
-├── controllers/     # Route controllers
-│   └── auth.controller.ts
-├── services/        # Business logic
-│   └── auth.service.ts
-├── middleware/      # Express middleware
-│   ├── auth.middleware.ts
-│   ├── error.middleware.ts
-│   ├── rateLimit.middleware.ts
-│   └── validation.middleware.ts
+├── models/          # Database models (Sequelize)
+├── controllers/     # Route controllers (Functional)
+├── services/        # Business logic (Functional)
+├── middlewares/     # Express middleware
 ├── routes/          # API routes
-│   └── auth.routes.ts
-├── utils/           # Utilities
-│   ├── logger.ts
-│   ├── encryption.ts
-│   ├── validation.ts
-│   └── helpers.ts
+├── websocket/       # WebSocket handlers (Chat, Video, Presence)
+├── utils/           # Utilities (Logger, Encryption, etc.)
 ├── types/           # TypeScript types
-│   └── index.ts
 ├── app.ts           # Express app setup
 └── server.ts        # Server entry point
 ```
@@ -308,14 +316,17 @@ lsof -i :5000
 kill -9 <PID>
 ```
 
-## 📚 Next Steps
+## 📚 Project Status
 
-1. ✅ Authentication system working
-2. 🔄 Add more endpoints (users, therapists, sessions)
-3. 🔄 Integrate AI service (Claude API)
-4. 🔄 Add WebSocket for real-time chat
-5. 🔄 Integrate payment system (Stripe)
-6. 🔄 Add email/SMS services
+1. ✅ Authentication system (JWT + Refresh Tokens)
+2. ✅ Functional Refactoring (Controllers & Services)
+3. ✅ AI Therapy Integration (Claude API)
+4. ✅ Real-time Chat (WebSockets)
+5. ✅ Video/Voice Calling (WebRTC)
+6. ✅ Payment System (Stripe)
+7. ✅ KYC & Verification Workflow
+8. ✅ Notifications & Support Systems
+9. 🔄 Mobile App Integration
 
 ## 📞 Support
 

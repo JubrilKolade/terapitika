@@ -4,11 +4,11 @@ import { IUser, UserRole, AuthProvider } from '../types';
 import { hashPassword } from '../utils/encryption';
 
 // User creation attributes (optional fields)
-interface UserCreationAttributes extends Optional<IUser, 
-  'id' | 'profile_picture_url' | 'phone' | 'date_of_birth' | 'gender' | 
-  'is_verified' | 'is_active' | 'oauth_id' | 'emergency_contact' | 
-  'preferences' | 'created_at' | 'updated_at' | 'last_login_at' | 'deleted_at'
-> {}
+interface UserCreationAttributes extends Optional<IUser,
+  'id' | 'profile_picture_url' | 'phone' | 'date_of_birth' | 'gender' |
+  'is_verified' | 'is_active' | 'oauth_id' | 'emergency_contact' |
+  'preferences' | 'stripe_customer_id' | 'created_at' | 'updated_at' | 'last_login_at' | 'deleted_at'
+> { }
 
 // User model class
 class User extends Model<IUser, UserCreationAttributes> implements IUser {
@@ -28,6 +28,7 @@ class User extends Model<IUser, UserCreationAttributes> implements IUser {
   public oauth_id?: string;
   public emergency_contact?: any;
   public preferences?: any;
+  public stripe_customer_id?: string;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
   public last_login_at?: Date;
@@ -170,6 +171,10 @@ User.init(
           push: true,
         },
       },
+    },
+    stripe_customer_id: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
     },
     created_at: {
       type: DataTypes.DATE,

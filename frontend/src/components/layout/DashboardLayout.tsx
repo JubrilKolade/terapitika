@@ -17,6 +17,11 @@ export function DashboardLayout({
     const { user, logout } = useAuthStore();
     const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
+    const settingsPath =
+        type === 'admin' ? '/admin/settings'
+        : type === 'therapist' ? '/therapist/settings'
+        : '/settings';
+
     return (
         <div className="flex min-h-screen bg-[#0A0A0F] text-white">
             {/* Background Grid */}
@@ -65,7 +70,7 @@ export function DashboardLayout({
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => window.location.href = `/${type === 'therapist' ? 'therapist/settings' : 'settings'}`}
+                                onClick={() => window.location.href = settingsPath}
                                 className="relative hover:bg-white/10"
                             >
                                 <Settings className="w-5 h-5" />

@@ -2,6 +2,7 @@ import { Therapist, User } from '../models';
 import { ITherapist, LicenseVerificationStatus, UserRole } from '../types';
 import logger from '../utils/logger';
 import { Op } from 'sequelize';
+import sequelize from '../config/database';
 
 interface TherapistRegistrationData {
     licenseNumber: string;
@@ -182,6 +183,15 @@ export const getTherapistStats = async (therapistId: string): Promise<{
 };
 
 /**
+ * Get availability schedule
+ */
+export const getAvailability = async (therapistId: string): Promise<any> => {
+    const therapist = await Therapist.findByPk(therapistId);
+    if (!therapist) throw new Error('Therapist not found');
+    return therapist.availability_schedule;
+};
+
+/**
  * Update availability schedule
  */
 export const updateAvailability = async (
@@ -250,4 +260,48 @@ export const verifyLicense = async (
     await therapist.save();
     logger.info(`Therapist ${therapistId} verification updated to: ${status}`);
     return therapist.toJSON() as ITherapist;
+};
+/**
+ * Get therapist clients
+ */
+export const getClients = async (therapistId: string, page: number = 1, limit: number = 20) => {
+    const { Booking, User } = require('../models');
+    const offset = (page - 1) * limit;
+
+    const { count, rows } = await Booking.findAndCountAll({
+        where: { therapist_id: therapistId },
+        attributes: [[sequelize.fn('DISTINCT', sequelize.col('client_id')), 'client_id']],
+        include: [{
+            model: User,
+            as: 'client',
+            attributes: ['id', 'first_name', 'last_name', 'email', 'profile_picture_url']
+        }],
+        limit, offset,
+    });
+
+    return { clients: rows.map((r: any) => r.client), total: count };
+};
+
+/**
+ * Get therapist earnings
+ */
+export const getEarnings = async (therapistId: string) => {
+    const { Payment } = require('../models');
+    const { PaymentStatus } = require('../types');
+
+    const successfulPayments = await Payment.findAll({
+        where: {
+            therapist_id: therapistId,
+            status: PaymentStatus.SUCCEEDED,
+        },
+    });
+
+    const totalEarnings = successfulPayments.reduce((acc: number, curr: any) => acc + Number(curr.amount), 0);
+    const recentTransactions = successfulPayments.slice(0, 10);
+
+    return {
+        totalEarnings,
+        currency: successfulPayments[0]?.currency || 'USD',
+        recentTransactions,
+    };
 };

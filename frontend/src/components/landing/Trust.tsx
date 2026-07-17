@@ -1,12 +1,12 @@
 'use client';
 
 import { Shield, Lock, Activity, Globe as GlobeIcon } from 'lucide-react';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 export function Trust() {
     return (
         <>
+            {/* Logo Cloud / Trust Bar */}
             <section className="relative py-20 border-y border-white/5">
                 <div className="max-w-7xl mx-auto px-4 overflow-hidden">
                     <div className="flex flex-wrap justify-center items-center gap-12 md:gap-24 opacity-30 grayscale hover:grayscale-0 transition-all duration-500">
@@ -17,6 +17,7 @@ export function Trust() {
                 </div>
             </section>
 
+            {/* Trust & Compliance Section */}
             <section className="relative py-32 px-4 border-t border-white/5 bg-[#0D0D15]">
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-16">
@@ -68,14 +69,7 @@ export function Trust() {
                     </div>
                     <div className="mt-16 flex flex-col sm:flex-row items-center justify-center gap-4">
                         <Button className="bg-therapy-500 hover:bg-therapy-600 text-white px-8 h-12">Book a Demo</Button>
-                        <Link href="/how-it-works">
-                            <Button
-                                variant="ghost"
-                                className="text-gray-400 hover:text-white px-8 h-12 hover:bg-white/5"
-                            >
-                                Learn More
-                            </Button>
-                        </Link>
+                        <Button variant="ghost" className="text-gray-400 hover:text-white px-8 h-12">Learn More</Button>
                     </div>
                 </div>
             </section>

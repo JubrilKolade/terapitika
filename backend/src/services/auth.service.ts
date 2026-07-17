@@ -1,15 +1,15 @@
 import { User } from '../models';
 import { UserRole, AuthProvider, IUser } from '../types';
-import { generateToken } from '../utils/encryption';
+import { generateToken, comparePassword } from '../utils/encryption';
 import { generateTokenPair } from '../config/jwt';
 import { sessionHelpers } from '../config/redis';
+import { sendPasswordResetEmail, sendEmailVerification as sendVerificationEmail } from './email.service';
 import {
   isValidEmail,
   isValidPassword,
   isAdult
 } from '../utils/validation';
 import logger from '../utils/logger';
-import { comparePassword } from '../utils/encryption';
 
 interface RegisterData {
   email: string;
@@ -51,6 +51,12 @@ export const register = async (data: RegisterData): Promise<{
   const existingUser = await User.findOne({ where: { email: data.email.toLowerCase() } });
   if (existingUser) throw new Error('User with this email already exists');
 
+  const roleInput = data.role ? String(data.role).toLowerCase() : UserRole.CLIENT;
+  const allowedRoles = [UserRole.CLIENT, UserRole.THERAPIST];
+  const role = allowedRoles.includes(roleInput as UserRole)
+    ? (roleInput as UserRole)
+    : UserRole.CLIENT;
+
   const user = await User.create({
     email: data.email.toLowerCase(),
     password_hash: data.password,
@@ -58,7 +64,7 @@ export const register = async (data: RegisterData): Promise<{
     last_name: data.lastName,
     date_of_birth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
     phone: data.phone,
-    role: data.role || UserRole.CLIENT,
+    role,
     auth_provider: AuthProvider.LOCAL,
     is_verified: false,
     is_active: true,
@@ -170,7 +176,8 @@ export const requestPasswordReset = async (email: string): Promise<string> => {
   if (!user) return 'If an account exists, a password reset email has been sent';
 
   const resetToken = generateToken(32);
-  await sessionHelpers.setSession(`password_reset:${user.id}`, { token: resetToken, email: user.email }, 3600);
+  await sessionHelpers.setSession(`password_reset:${resetToken}`, { userId: user.id, email: user.email }, 3600);
+  await sendPasswordResetEmail(user.email, resetToken);
   logger.info(`Password reset requested: ${user.email}`);
   return resetToken;
 };
@@ -178,20 +185,20 @@ export const requestPasswordReset = async (email: string): Promise<string> => {
 /**
  * Reset password
  */
-export const resetPassword = async (userId: string, token: string, newPassword: string): Promise<void> => {
+export const resetPassword = async (token: string, newPassword: string): Promise<void> => {
   const passwordValidation = isValidPassword(newPassword);
   if (!passwordValidation.valid) throw new Error(passwordValidation.errors.join(', '));
 
-  const resetData = await sessionHelpers.getSession(`password_reset:${userId}`);
-  if (!resetData || resetData.token !== token) throw new Error('Invalid or expired reset token');
+  const resetData = await sessionHelpers.getSession(`password_reset:${token}`);
+  if (!resetData || !resetData.userId) throw new Error('Invalid or expired reset token');
 
-  const user = await User.findByPk(userId);
+  const user = await User.findByPk(resetData.userId);
   if (!user || !user.is_active) throw new Error('User not found or inactive');
 
   user.password_hash = newPassword;
   await user.save();
-  await sessionHelpers.deleteSession(`password_reset:${userId}`);
-  await sessionHelpers.deleteRefreshToken(userId);
+  await sessionHelpers.deleteSession(`password_reset:${token}`);
+  await sessionHelpers.deleteRefreshToken(user.id);
   logger.info(`Password reset completed: ${user.email}`);
 };
 
@@ -217,16 +224,16 @@ export const changePassword = async (userId: string, currentPassword: string, ne
 /**
  * Verify email
  */
-export const verifyEmail = async (userId: string, token: string): Promise<void> => {
-  const verifyData = await sessionHelpers.getSession(`email_verify:${userId}`);
-  if (!verifyData || verifyData.token !== token) throw new Error('Invalid or expired verification token');
+export const verifyEmail = async (token: string): Promise<void> => {
+  const verifyData = await sessionHelpers.getSession(`email_verify:${token}`);
+  if (!verifyData || !verifyData.userId) throw new Error('Invalid or expired verification token');
 
-  const user = await User.findByPk(userId);
+  const user = await User.findByPk(verifyData.userId);
   if (!user) throw new Error('User not found');
 
   user.is_verified = true;
   await user.save();
-  await sessionHelpers.deleteSession(`email_verify:${userId}`);
+  await sessionHelpers.deleteSession(`email_verify:${token}`);
   logger.info(`Email verified: ${user.email}`);
 };
 
@@ -239,7 +246,8 @@ export const sendEmailVerification = async (userId: string): Promise<string> => 
   if (user.is_verified) throw new Error('Email already verified');
 
   const verifyToken = generateToken(32);
-  await sessionHelpers.setSession(`email_verify:${userId}`, { token: verifyToken, email: user.email }, 86400);
+  await sessionHelpers.setSession(`email_verify:${verifyToken}`, { userId, email: user.email }, 86400);
+  await sendVerificationEmail(user.email, verifyToken);
   logger.info(`Email verification sent: ${user.email}`);
   return verifyToken;
 };

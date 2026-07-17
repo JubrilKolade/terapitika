@@ -49,3 +49,28 @@ export const handleWebhook = asyncHandler(async (req: any, res: Response) => {
     await PaymentService.handleWebhook(event);
     return res.json({ received: true });
 });
+export const getPaymentMethods = asyncHandler(async (req: AuthRequest, res: Response) => {
+    if (!req.user) return sendError(res, 'Not authenticated', 401);
+    const methods = await PaymentService.getPaymentMethods(req.user.id);
+    return sendSuccess(res, methods);
+});
+
+export const addPaymentMethod = asyncHandler(async (req: AuthRequest, res: Response) => {
+    if (!req.user) return sendError(res, 'Not authenticated', 401);
+    const { paymentMethodId } = req.body;
+    const method = await PaymentService.addPaymentMethod(req.user.id, paymentMethodId);
+    return sendSuccess(res, method, 'Payment method added');
+});
+
+export const removePaymentMethod = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { id } = req.params;
+    await PaymentService.removePaymentMethod(id as string);
+    return sendSuccess(res, null, 'Payment method removed');
+});
+
+export const setDefaultPaymentMethod = asyncHandler(async (req: AuthRequest, res: Response) => {
+    if (!req.user) return sendError(res, 'Not authenticated', 401);
+    const { id } = req.params;
+    await PaymentService.setDefaultPaymentMethod(req.user.id, id as string);
+    return sendSuccess(res, null, 'Default payment method updated');
+});

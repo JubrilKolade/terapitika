@@ -6,6 +6,7 @@ const redis = new Redis({
   host: config.redis.host,
   port: config.redis.port,
   password: config.redis.password,
+  lazyConnect: config.env === 'test',
   retryStrategy: (times) => {
     const delay = Math.min(times * 50, 2000);
     return delay;
@@ -14,17 +15,19 @@ const redis = new Redis({
 });
 
 // Event listeners
-redis.on('connect', () => {
-  console.log('✓ Redis client connected');
-});
+if (config.env !== 'test') {
+  redis.on('connect', () => {
+    console.log('✓ Redis client connected');
+  });
 
-redis.on('error', (error) => {
-  console.error('✗ Redis client error:', error);
-});
+  redis.on('error', (error) => {
+    console.error('✗ Redis client error:', error);
+  });
 
-redis.on('ready', () => {
-  console.log('✓ Redis client ready');
-});
+  redis.on('ready', () => {
+    console.log('✓ Redis client ready');
+  });
+}
 
 // Helper functions
 export const redisHelpers = {
@@ -89,6 +92,9 @@ export const redisHelpers = {
   
   // Flush all keys (use with caution!)
   async flushAll(): Promise<'OK'> {
+    if (config.env !== 'test' && process.env.ALLOW_REDIS_FLUSHALL !== 'true') {
+      throw new Error('redisHelpers.flushAll is disabled (set ALLOW_REDIS_FLUSHALL=true to enable)');
+    }
     return redis.flushall();
   },
 };
